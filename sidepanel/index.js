@@ -308,6 +308,74 @@ window.addEventListener('message', (event) => {
         chrome.storage.local.set({ geminiAccountIndices: payload });
         if (preFetchedData) preFetchedData.geminiAccountIndices = payload;
     }
+
+    if (action === 'DOWNLOAD_SVG') {
+        const { svg, filename } = payload;
+
+        try {
+            const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(svgBlob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename || 'mindmap.svg';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            console.error("Error in DOWNLOAD_SVG", e);
+        }
+    }
+
+    if (action === 'DOWNLOAD_MINDMAP_PNG') {
+        const { svgHtml, width, height, filename } = payload;
+
+        // Create an off-screen container in the Sidepanel (Trusted Context)
+        const container = document.createElement('div');
+        container.style.position = 'absolute';
+        container.style.top = '-9999px';
+        container.style.left = '-9999px';
+        container.style.width = width ? `${width}px` : 'auto';
+        container.style.height = height ? `${height}px` : 'auto';
+        container.style.background = '#ffffff'; // Ensure white background
+        container.innerHTML = svgHtml;
+
+        document.body.appendChild(container);
+
+        try {
+            // Use html2canvas in this trusted context
+            // Note: Since we are in extension context, this should work fine
+            window.html2canvas(container, {
+                backgroundColor: '#ffffff',
+                scale: 2,
+                logging: false,
+                useCORS: true
+            }).then(canvas => {
+                canvas.toBlob(blob => {
+                    if (blob) {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = filename || 'mindmap.png';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }
+                    // Cleanup
+                    document.body.removeChild(container);
+                }, 'image/png');
+            }).catch(err => {
+                console.error("Sidepanel html2canvas failed:", err);
+                document.body.removeChild(container);
+            });
+        } catch (e) {
+            console.error("Error initiating html2canvas in Sidepanel:", e);
+            if (container.parentNode) document.body.removeChild(container);
+        }
+    }
 });
 
 // Forward messages from Background to Sandbox

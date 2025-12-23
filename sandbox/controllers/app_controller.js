@@ -179,16 +179,6 @@ export class AppController {
         this.imageManager.handleFiles(files);
     }
 
-    // --- MCP Logic ---
+    // handleMcpSelection removed (legacy)
 
-    handleMcpSelection() {
-        // Request configured MCP Servers from background (reads storage)
-        window.parent.postMessage({
-            action: 'FORWARD_TO_BACKGROUND',
-            payload: { action: 'MCP_GET_CONFIG' }
-        }, '*');
-
-        // The response will come back via handleIncomingMessage > messageHandler
-        // and handled by a new method: handleMcpConfig
-    }
 }

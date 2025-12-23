@@ -68,17 +68,9 @@ export class MessageHandler {
             return;
         }
 
-        // 7. MCP Config Response (JSON string containing mcpServers)
-        // This is triggered when user clicks MCP button
-        if (typeof request === 'string' && request.includes('"mcpServers"')) {
-            try {
-                const config = JSON.parse(request);
-                this.handleMcpConfig(config);
-            } catch (e) {
-                console.error("[MCP] Failed to parse config", e);
-            }
-            return;
-        }
+        // 7. MCP Config Response (Legacy removed)
+        // Was: if (typeof request === 'string' && request.includes('"mcpServers"')) ...
+
 
         // 8. MCP Tools Response (for backwards compatibility)
         if (request.tools) {
@@ -93,114 +85,7 @@ export class MessageHandler {
         }
     }
 
-    handleMcpConfig(config) {
-        const servers = config.mcpServers || {};
-        const serverList = Object.entries(servers);
 
-        if (serverList.length === 0) {
-            alert(t('noMcpConfigured') || "No MCP servers configured. Please add one in Settings.");
-            return;
-        }
-
-        this.showServerPicker(serverList);
-    }
-
-    showServerPicker(serverList) {
-        const modalId = 'mcp-server-picker';
-        let modal = document.getElementById(modalId);
-        if (modal) modal.remove();
-
-        modal = document.createElement('div');
-        modal.id = modalId;
-        modal.className = 'settings-modal visible';
-        modal.style.zIndex = '2000';
-
-        const content = document.createElement('div');
-        content.className = 'settings-content';
-        content.style.maxWidth = '500px';
-        content.style.maxHeight = '80vh';
-        content.style.display = 'flex';
-        content.style.flexDirection = 'column';
-
-        // Header
-        const header = document.createElement('div');
-        header.className = 'settings-header';
-        header.innerHTML = `<h3>Select MCP Servers</h3>
-            <div style="display:flex;gap:8px;">
-                <button class="btn-primary small" id="mcp-apply-btn">Apply to Chat</button>
-                <button class="icon-btn small close-pc">✕</button>
-            </div>`;
-
-        // Body (Scrollable)
-        const body = document.createElement('div');
-        body.className = 'settings-body';
-        body.style.flex = '1';
-        body.style.overflowY = 'auto';
-
-        // Render Servers with Checkboxes
-        serverList.forEach(([name, config], index) => {
-            const item = document.createElement('label');
-            item.className = 'shortcut-row';
-            item.style.cursor = 'pointer';
-            item.style.padding = '10px 12px';
-            item.style.borderRadius = '8px';
-            item.style.marginBottom = '8px';
-            item.style.border = '1px solid var(--border-color)';
-            item.style.display = 'flex';
-            item.style.alignItems = 'center';
-            item.style.background = 'var(--bg-sidebar)';
-            item.onmouseover = () => item.style.borderColor = 'var(--primary)';
-            item.onmouseout = () => item.style.borderColor = 'var(--border-color)';
-
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.value = name;
-            checkbox.style.marginRight = '12px';
-            checkbox.style.width = '18px';
-            checkbox.style.height = '18px';
-            checkbox.checked = true; // Default select all
-
-            const info = document.createElement('div');
-            info.style.flex = '1';
-            info.innerHTML = `
-                <div style="font-weight:600; font-size:15px;">${name}</div>
-                <div style="font-size:11px; color:var(--text-tertiary); margin-top:4px; font-family:monospace; word-break:break-all;">
-                    ${config.url || config.endpoint || 'No URL'}
-                </div>
-            `;
-
-            item.appendChild(checkbox);
-            item.appendChild(info);
-            body.appendChild(item);
-        });
-
-        content.appendChild(header);
-        content.appendChild(body);
-        modal.appendChild(content);
-        document.body.appendChild(modal);
-
-        // Event Listeners
-        const applyBtn = modal.querySelector('#mcp-apply-btn');
-        applyBtn.onclick = () => {
-            const checkboxes = body.querySelectorAll('input[type="checkbox"]:checked');
-            const selectedServers = Array.from(checkboxes).map(cb => {
-                const serverName = cb.value;
-                const serverConfig = serverList.find(s => s[0] === serverName);
-                return { name: serverName, config: serverConfig ? serverConfig[1] : {} };
-            });
-
-            if (selectedServers.length > 0) {
-                // Use new MCP controller to update selection
-                selectedServers.forEach(server => {
-                    this.app.mcp.selectMcp(server.name);
-                });
-            }
-            modal.remove();
-        };
-
-        modal.querySelector('.close-pc').onclick = () => modal.remove();
-        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-    }
 
     // Legacy method - kept for backwards compatibility but no longer injects text
     injectMcpContext(selectedServers) {

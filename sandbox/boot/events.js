@@ -168,14 +168,8 @@ export function bindAppEvents(app, ui, setResizeRef) {
         }
 
         // 2. MCP Action
-        const mcpItem = document.getElementById('action-mcp');
-        if (mcpItem) {
-            mcpItem.addEventListener('click', () => {
-                // Fetch tools and show selection logic (could be another modal or simple prompt injection)
-                actionMenu.classList.add('hidden');
-                app.handleMcpSelection();
-            });
-        }
+        // Handled by mcp_controller.js now.
+
     }
 
     // Input Key Handling

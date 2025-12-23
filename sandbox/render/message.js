@@ -3,7 +3,7 @@
 import { renderContent } from './content.js';
 import { copyToClipboard } from './clipboard.js';
 import { createGeneratedImage } from './generated_image.js';
-import { loadMarkmap } from '../libs/markmap-loader.js'; // Changed from mermaid
+import { loadMarkmap } from '../libs/markmap-loader.js';
 
 
 // Appends a message to the chat history and returns an update controller
@@ -238,24 +238,120 @@ export function appendMessage(container, text, role, attachment = null, thoughts
 
                                 container.appendChild(svg);
 
-                                // --- Add Copy Button ---
-                                const copyBtn = document.createElement('button');
-                                copyBtn.className = 'copy-btn markmap-copy-btn';
-                                copyBtn.title = 'Copy as Text';
-                                copyBtn.style.position = 'absolute';
-                                copyBtn.style.top = '10px';
-                                copyBtn.style.right = '10px';
-                                copyBtn.style.zIndex = '10';
-                                copyBtn.style.background = 'white';
-                                copyBtn.style.border = '1px solid #ccc';
-                                copyBtn.style.borderRadius = '4px';
-                                copyBtn.style.padding = '4px';
-                                copyBtn.style.cursor = 'pointer';
-                                copyBtn.style.display = 'flex';
-                                copyBtn.style.alignItems = 'center';
-                                copyBtn.style.justifyContent = 'center';
-                                copyBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                                // --- Mindmap Tools Container ---
+                                const toolsContainer = document.createElement('div');
+                                toolsContainer.style.position = 'absolute';
+                                toolsContainer.style.top = '10px';
+                                toolsContainer.style.right = '10px';
+                                toolsContainer.style.zIndex = '10';
+                                toolsContainer.style.display = 'flex';
+                                toolsContainer.style.gap = '8px';
 
+                                // Common Button Styles
+                                const btnStyle = `
+                                    background: white;
+                                    border: 1px solid #ccc;
+                                    border-radius: 4px;
+                                    padding: 4px;
+                                    cursor: pointer;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                                    width: 28px;
+                                    height: 28px;
+                                    color: #444;
+                                    box-sizing: border-box;
+                                    margin: 0;
+                                `;
+
+                                // 1. Download as PNG Button
+                                const downloadImgBtn = document.createElement('button');
+                                downloadImgBtn.style.cssText = btnStyle;
+                                downloadImgBtn.title = 'Download as PNG';
+                                const downloadIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+                                downloadImgBtn.innerHTML = downloadIcon;
+
+                                downloadImgBtn.onclick = async () => {
+                                    try {
+                                        // 1. Prepare SVG for export (Sandbox Context)
+                                        // We must inline styles here because the Sidepanel context doesn't have the stylesheets.
+                                        const svgClone = svg.cloneNode(true);
+                                        const bbox = svg.getBBox();
+                                        const padding = 20;
+                                        // Use container dimensions if larger than bbox
+                                        // Note: container.clientWidth might be 0 if hidden/collapsed, so fallback
+                                        const w = container.clientWidth || bbox.width;
+                                        const h = container.clientHeight || bbox.height;
+
+                                        const width = Math.max(w, bbox.width + padding * 2);
+                                        const height = Math.max(h, bbox.height + padding * 2);
+
+                                        svgClone.setAttribute('width', width);
+                                        svgClone.setAttribute('height', height);
+                                        svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+                                        // Ensure background matches
+                                        svgClone.style.backgroundColor = '#ffffff';
+
+                                        // Inline critical computed styles
+                                        // This ensures the Sidepanel (which lacks the CSS) renders it correctly via html2canvas
+                                        const allElements = svgClone.querySelectorAll('*');
+                                        const originalElements = svg.querySelectorAll('*');
+
+                                        // Performance note: Iterate only if counts match roughly (sanity check)
+                                        if (allElements.length === originalElements.length) {
+                                            for (let i = 0; i < allElements.length; i++) {
+                                                const el = allElements[i];
+                                                const orig = originalElements[i];
+                                                const computed = window.getComputedStyle(orig);
+
+                                                // Capture typography and stroke styles
+                                                const stylesToInline = [
+                                                    'fill', 'stroke', 'stroke-width',
+                                                    'font-family', 'font-size', 'font-weight', 'font-style',
+                                                    'opacity', 'visibility'
+                                                ];
+
+                                                const inlineStyle = stylesToInline
+                                                    .map(prop => `${prop}:${computed.getPropertyValue(prop)}`)
+                                                    .join(';');
+
+                                                el.setAttribute('style', (el.getAttribute('style') || '') + ';' + inlineStyle);
+                                            }
+                                        }
+
+                                        const serializer = new XMLSerializer();
+                                        const svgString = serializer.serializeToString(svgClone);
+
+                                        // 2. Delegate to Sidepanel (Parent Context)
+                                        // Sidepanel has trusted origin and can run html2canvas without "null origin" taint issues.
+                                        window.parent.postMessage({
+                                            action: 'DOWNLOAD_MINDMAP_PNG',
+                                            payload: {
+                                                svgHtml: svgString,
+                                                width: width,
+                                                height: height,
+                                                filename: 'mindmap.png'
+                                            }
+                                        }, '*');
+
+                                        // 3. Visual Feedback
+                                        const originalHTML = downloadImgBtn.innerHTML;
+                                        downloadImgBtn.innerHTML = checkIcon;
+                                        setTimeout(() => {
+                                            downloadImgBtn.innerHTML = originalHTML;
+                                        }, 2000);
+
+                                    } catch (e) {
+                                        console.error('Failed to initiate PNG download', e);
+                                    }
+                                };
+
+                                // 2. Copy as Text Button (Existing Logic)
+                                const copyBtn = document.createElement('button');
+                                copyBtn.className = 'markmap-copy-btn';
+                                copyBtn.style.cssText = btnStyle;
+                                copyBtn.title = 'Copy as Hierarchical Text';
                                 const copyIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
                                 const checkIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
 
@@ -299,7 +395,9 @@ export function appendMessage(container, text, role, attachment = null, thoughts
                                     }
                                 };
 
-                                container.appendChild(copyBtn);
+                                toolsContainer.appendChild(downloadImgBtn);
+                                toolsContainer.appendChild(copyBtn);
+                                container.appendChild(toolsContainer);
 
                                 // Replace the hidden source div with the chart container
                                 node.replaceWith(container);

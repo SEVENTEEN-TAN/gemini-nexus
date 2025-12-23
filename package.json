@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "d3": "^7.9.0",
+    "html2canvas": "^1.4.1",
     "markmap-lib": "^0.18.12",
     "markmap-view": "^0.18.12",
     "mermaid": "^11.12.2"
