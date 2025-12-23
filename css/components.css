@@ -1,7 +1,3 @@
-
-
-
-
 .icon-btn {
     background: var(--icon-btn-bg);
     backdrop-filter: blur(8px);
@@ -16,7 +12,7 @@
     justify-content: center;
     transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
     padding: 0;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     pointer-events: auto;
 }
 
@@ -26,17 +22,17 @@
     font-size: 14px;
 }
 
-.icon-btn:hover { 
+.icon-btn:hover {
     background: var(--icon-btn-hover);
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
     border-color: var(--icon-btn-border);
     color: var(--text-primary);
 }
 
 .icon-btn:active {
     transform: translateY(0);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 /* --- Optimized Image Viewer --- */
@@ -49,7 +45,8 @@
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0,0,0,0.85); /* Slightly darker */
+    background-color: rgba(0, 0, 0, 0.85);
+    /* Slightly darker */
     backdrop-filter: blur(5px);
     flex-direction: column;
     opacity: 0;
@@ -75,6 +72,7 @@
     cursor: grab;
     user-select: none;
 }
+
 .viewer-container:active {
     cursor: grabbing;
 }
@@ -85,11 +83,13 @@
     max-height: 100%;
     object-fit: contain;
     transform-origin: center;
-    transition: transform 0.1s linear; /* Fast for smooth drag, handled by JS mostly */
-    box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+    transition: transform 0.1s linear;
+    /* Fast for smooth drag, handled by JS mostly */
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
     border-radius: 4px;
     user-select: none;
-    pointer-events: none; /* Let container handle events */
+    pointer-events: none;
+    /* Let container handle events */
     will-change: transform;
 }
 
@@ -108,7 +108,7 @@
     align-items: center;
     gap: 8px;
     z-index: 2001;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
     transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1), opacity 0.3s;
     opacity: 0;
 }
@@ -137,6 +137,7 @@
     color: #fff;
     transform: translateY(-1px);
 }
+
 .viewer-toolbar button:active {
     transform: translateY(0);
     background: rgba(255, 255, 255, 0.1);
@@ -145,7 +146,7 @@
 .viewer-divider {
     width: 1px;
     height: 18px;
-    background: rgba(255,255,255,0.2);
+    background: rgba(255, 255, 255, 0.2);
     margin: 0 4px;
 }
 
@@ -186,9 +187,10 @@
     background: var(--bg-modal);
     width: 420px;
     max-width: 90%;
-    max-height: 85vh; /* Limit height */
+    max-height: 85vh;
+    /* Limit height */
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
     transform: translateY(10px);
     transition: transform 0.2s ease, background 0.2s;
     display: flex;
@@ -205,7 +207,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    flex-shrink: 0; /* Header stays fixed */
+    flex-shrink: 0;
+    /* Header stays fixed */
 }
 
 .settings-header h3 {
@@ -217,9 +220,15 @@
 
 .settings-body {
     padding: 20px;
-    overflow-y: auto; /* Enable vertical scrolling */
-    overscroll-behavior: contain; /* Prevent scroll chaining to parent */
-    
+    flex: 1;
+    /* Ensure it fills space */
+    min-height: 0;
+    /* Crucial for scrolling inside flex item */
+    overflow-y: auto;
+    /* Enable vertical scrolling */
+    overscroll-behavior: contain;
+    /* Prevent scroll chaining to parent */
+
     /* Custom Scrollbar Firefox */
     scrollbar-width: thin;
     scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
@@ -234,13 +243,16 @@
     width: 6px;
     height: 6px;
 }
+
 .settings-body::-webkit-scrollbar-track {
     background: transparent;
 }
+
 .settings-body::-webkit-scrollbar-thumb {
     background-color: rgba(0, 0, 0, 0.1);
     border-radius: 3px;
 }
+
 .settings-body::-webkit-scrollbar-thumb:hover {
     background-color: rgba(0, 0, 0, 0.2);
 }
@@ -248,6 +260,7 @@
 [data-theme="dark"] .settings-body::-webkit-scrollbar-thumb {
     background-color: rgba(255, 255, 255, 0.1);
 }
+
 [data-theme="dark"] .settings-body::-webkit-scrollbar-thumb:hover {
     background-color: rgba(255, 255, 255, 0.2);
 }
@@ -255,7 +268,10 @@
 .setting-group {
     margin-bottom: 24px;
 }
-.setting-group:last-child { margin-bottom: 0; }
+
+.setting-group:last-child {
+    margin-bottom: 0;
+}
 
 .setting-group h4 {
     margin: 0 0 10px 0;
@@ -271,6 +287,7 @@
     font-size: 15px;
     color: var(--text-primary);
 }
+
 .setting-desc {
     margin: 0;
     font-size: 13px;
@@ -288,9 +305,11 @@
     font-size: 13px;
     transition: color 0.2s;
 }
+
 .github-link:hover {
     color: var(--primary);
 }
+
 .star-badge {
     background: var(--bg-sidebar);
     padding: 2px 6px;
@@ -308,18 +327,21 @@
     justify-content: space-between;
     margin-bottom: 12px;
 }
+
 .shortcut-row label {
     font-size: 14px;
     color: var(--text-secondary);
     flex: 1;
 }
+
 .shortcut-input {
     width: 140px;
     padding: 6px 10px;
     border: 1px solid var(--border-color);
     border-radius: 6px;
     font-size: 13px;
-    text-align: center;
+    text-align: left;
+    /* Default to left for better compatibility */
     color: var(--text-primary);
     outline: none;
     background: var(--bg-input);
@@ -327,11 +349,13 @@
     font-family: monospace;
     transition: all 0.2s;
 }
+
 .shortcut-input:focus {
     border-color: var(--primary);
     background: var(--bg-input-focus);
     box-shadow: 0 0 0 2px rgba(11, 87, 208, 0.1);
 }
+
 .shortcut-static {
     font-size: 13px;
     color: var(--text-tertiary);
@@ -347,7 +371,8 @@
     border-top: 1px solid var(--border-color);
 }
 
-.btn-primary, .btn-secondary {
+.btn-primary,
+.btn-secondary {
     padding: 8px 16px;
     border-radius: 18px;
     font-size: 13px;
@@ -361,9 +386,10 @@
     background: var(--primary);
     color: var(--on-primary);
 }
+
 .btn-primary:hover {
     background: var(--primary-hover);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .btn-secondary {
@@ -371,7 +397,16 @@
     color: var(--primary);
     border: 1px solid var(--border-color);
 }
+
 .btn-secondary:hover {
     background: var(--bg-sidebar);
     border-color: var(--primary);
+}
+
+textarea.shortcut-input {
+    min-height: 80px;
+    line-height: 1.4;
+    padding: 8px;
+    white-space: pre;
+    overflow-x: auto;
 }

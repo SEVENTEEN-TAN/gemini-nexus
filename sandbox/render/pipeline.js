@@ -8,6 +8,21 @@ import { MathHandler } from './math_utils.js';
  * @returns {string} - HTML string
  */
 export function transformMarkdown(text) {
+    // Handle case where text is an object (e.g., message object passed by mistake)
+    if (text && typeof text === 'object') {
+        if (typeof text.text === 'string') {
+            text = text.text;
+        } else {
+            console.warn('[Pipeline] transformMarkdown received object:', text);
+            return String(text);
+        }
+    }
+
+    // Ensure text is a string
+    if (typeof text !== 'string') {
+        return text == null ? '' : String(text);
+    }
+
     if (typeof marked === 'undefined') {
         // Library loads asynchronously; app will rerender when ready.
         // Return raw text in the meantime without polluting console.
@@ -15,15 +30,15 @@ export function transformMarkdown(text) {
     }
 
     const mathHandler = new MathHandler();
-    
+
     // 1. Protect Math blocks
     let processedText = mathHandler.protect(text || '');
-    
+
     // 2. Parse Markdown
     let html = marked.parse(processedText);
-    
+
     // 3. Restore Math blocks
     html = mathHandler.restore(html);
-    
+
     return html;
 }

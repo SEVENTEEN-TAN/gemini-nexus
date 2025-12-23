@@ -26,7 +26,8 @@ export class PromptController {
 
         await this.executePrompt(text, files, {
             includePageContext: this.app.pageContextActive,
-            enableBrowserControl: this.app.browserControlActive
+            enableBrowserControl: this.app.browserControlActive,
+            mcpIds: this.app.mcp.getSelectedMcpIds()
         });
     }
 
@@ -35,6 +36,7 @@ export class PromptController {
 
         const includePageContext = options.includePageContext !== undefined ? options.includePageContext : this.app.pageContextActive;
         const enableBrowserControl = options.enableBrowserControl !== undefined ? options.enableBrowserControl : this.app.browserControlActive;
+        const mcpIds = options.mcpIds || [];
 
         if (!this.sessionManager.currentSessionId) {
             this.sessionManager.createSession();
@@ -56,7 +58,9 @@ export class PromptController {
             this.ui.historyDiv,
             text,
             'user',
-            displayAttachments.length > 0 ? displayAttachments : null
+            displayAttachments.length > 0 ? displayAttachments : null,
+            null,  // thoughts
+            mcpIds // MCP IDs
         );
 
         this.sessionManager.addMessage(currentId, 'user', text, displayAttachments.length > 0 ? displayAttachments : null);
@@ -84,8 +88,9 @@ export class PromptController {
             files: files, // Send full file objects array
             model: selectedModel,
             includePageContext: includePageContext,
-            enableBrowserControl: enableBrowserControl, // Pass browser control state
-            sessionId: currentId // Important: Pass session ID so background can save history independently
+            enableBrowserControl: enableBrowserControl,
+            mcpIds: mcpIds, // MCP servers to activate
+            sessionId: currentId
         });
     }
 

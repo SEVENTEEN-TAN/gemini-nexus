@@ -132,6 +132,52 @@ export function bindAppEvents(app, ui, setResizeRef) {
         resizeModelSelect();
     }
 
+    // --- Action Menu Logic (Upload / MCP) ---
+    const actionTrigger = document.querySelector('.action-trigger');
+    const actionMenu = document.getElementById('action-menu');
+    const fileInput = document.getElementById('image-input');
+
+    if (actionTrigger && actionMenu) {
+        // Toggle menu
+        actionTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            actionMenu.classList.toggle('hidden');
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!actionMenu.classList.contains('hidden') && !actionMenu.contains(e.target) && !actionTrigger.contains(e.target)) {
+                actionMenu.classList.add('hidden');
+            }
+        });
+
+        // 1. Upload Action
+        const uploadItem = document.getElementById('action-upload');
+        if (uploadItem && fileInput) {
+            uploadItem.addEventListener('click', () => {
+                fileInput.click();
+                actionMenu.classList.add('hidden');
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                const files = e.target.files;
+                if (files.length > 0) {
+                    app.handleFileUpload(files);
+                }
+            });
+        }
+
+        // 2. MCP Action
+        const mcpItem = document.getElementById('action-mcp');
+        if (mcpItem) {
+            mcpItem.addEventListener('click', () => {
+                // Fetch tools and show selection logic (could be another modal or simple prompt injection)
+                actionMenu.classList.add('hidden');
+                app.handleMcpSelection();
+            });
+        }
+    }
+
     // Input Key Handling
     const inputFn = document.getElementById('prompt');
     const sendBtn = document.getElementById('send');

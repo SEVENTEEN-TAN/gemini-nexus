@@ -11,13 +11,15 @@ import { loadMarkmap } from '../libs/markmap-loader.js'; // Changed from mermaid
 // - string: single user image (URL/Base64)
 // - array of strings: multiple user images
 // - array of objects {url, alt}: AI generated images
-export function appendMessage(container, text, role, attachment = null, thoughts = null) {
+// mcpIds: array of MCP server IDs used for this message (for AI messages)
+export function appendMessage(container, text, role, attachment = null, thoughts = null, mcpIds = null) {
     const div = document.createElement('div');
     div.className = `msg ${role}`;
 
     // Store current text state
     let currentText = text || "";
     let currentThoughts = thoughts || "";
+    let currentMcpIds = mcpIds || [];
 
     // 1. User Uploaded Images
     if (role === 'user' && attachment) {
@@ -60,9 +62,33 @@ export function appendMessage(container, text, role, attachment = null, thoughts
         }
     }
 
+    // Add MCP badges for user messages
+    if (role === 'user' && currentMcpIds.length > 0) {
+        const userMcpContainer = document.createElement('div');
+        userMcpContainer.className = 'mcp-badge-container user-mcp-badges';
+        userMcpContainer.style.marginTop = '6px';
+
+        currentMcpIds.forEach(mcpId => {
+            const badge = document.createElement('span');
+            badge.className = 'mcp-badge';
+            badge.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+                <span>${escapeHtml(mcpId)}</span>
+            `;
+            userMcpContainer.appendChild(badge);
+        });
+
+        div.appendChild(userMcpContainer);
+    }
+
     let contentDiv = null;
     let thoughtsDiv = null;
     let thoughtsContent = null;
+    let mcpBadgeContainer = null;
 
     // Allow creating empty AI bubbles for streaming
     if (currentText || currentThoughts || role === 'ai') {
@@ -108,6 +134,31 @@ export function appendMessage(container, text, role, attachment = null, thoughts
 
                 div.appendChild(grid);
             }
+        }
+
+        // --- MCP Badge (for AI messages) ---
+        if (role === 'ai') {
+            mcpBadgeContainer = document.createElement('div');
+            mcpBadgeContainer.className = 'mcp-badge-container';
+            if (currentMcpIds.length === 0) {
+                mcpBadgeContainer.style.display = 'none';
+            }
+
+            currentMcpIds.forEach(mcpId => {
+                const badge = document.createElement('span');
+                badge.className = 'mcp-badge';
+                badge.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                    <span>${escapeHtml(mcpId)}</span>
+                `;
+                mcpBadgeContainer.appendChild(badge);
+            });
+
+            div.appendChild(mcpBadgeContainer);
         }
 
         // --- Add Copy Button ---
@@ -223,6 +274,33 @@ export function appendMessage(container, text, role, attachment = null, thoughts
                 div.insertBefore(grid, div.querySelector('.copy-btn'));
                 // Do not force scroll here either
             }
+        },
+        // Function to set MCP badges
+        setMcpIds: (mcpIds) => {
+            if (mcpBadgeContainer && mcpIds && mcpIds.length > 0) {
+                mcpBadgeContainer.innerHTML = '';
+                mcpBadgeContainer.style.display = 'flex';
+                mcpIds.forEach(mcpId => {
+                    const badge = document.createElement('span');
+                    badge.className = 'mcp-badge';
+                    badge.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                            <line x1="8" y1="21" x2="16" y2="21"></line>
+                            <line x1="12" y1="17" x2="12" y2="21"></line>
+                        </svg>
+                        <span>${escapeHtml(mcpId)}</span>
+                    `;
+                    mcpBadgeContainer.appendChild(badge);
+                });
+            }
         }
     };
+}
+
+// Helper function to escape HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }

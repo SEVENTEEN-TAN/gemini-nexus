@@ -51,7 +51,7 @@ export class MessageHandler {
             let statusText = t('selectSnip');
             if (request.mode === 'ocr') statusText = t('selectOcr');
             if (request.mode === 'screenshot_translate') statusText = t('selectTranslate');
-            
+
             this.ui.updateStatus(statusText);
             return;
         }
@@ -67,17 +67,274 @@ export class MessageHandler {
             this.app.setPageContext(request.enable);
             return;
         }
+
+        // 7. MCP Config Response (JSON string containing mcpServers)
+        // This is triggered when user clicks MCP button
+        if (typeof request === 'string' && request.includes('"mcpServers"')) {
+            try {
+                const config = JSON.parse(request);
+                this.handleMcpConfig(config);
+            } catch (e) {
+                console.error("[MCP] Failed to parse config", e);
+            }
+            return;
+        }
+
+        // 8. MCP Tools Response (for backwards compatibility)
+        if (request.tools) {
+            this.handleMcpTools(request.tools);
+            return;
+        }
+
+        // 9. MCP Status Response (for new MCP picker)
+        if (request.servers) {
+            this.app.mcp.handleMcpStatus(request.servers);
+            return;
+        }
+    }
+
+    handleMcpConfig(config) {
+        const servers = config.mcpServers || {};
+        const serverList = Object.entries(servers);
+
+        if (serverList.length === 0) {
+            alert(t('noMcpConfigured') || "No MCP servers configured. Please add one in Settings.");
+            return;
+        }
+
+        this.showServerPicker(serverList);
+    }
+
+    showServerPicker(serverList) {
+        const modalId = 'mcp-server-picker';
+        let modal = document.getElementById(modalId);
+        if (modal) modal.remove();
+
+        modal = document.createElement('div');
+        modal.id = modalId;
+        modal.className = 'settings-modal visible';
+        modal.style.zIndex = '2000';
+
+        const content = document.createElement('div');
+        content.className = 'settings-content';
+        content.style.maxWidth = '500px';
+        content.style.maxHeight = '80vh';
+        content.style.display = 'flex';
+        content.style.flexDirection = 'column';
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'settings-header';
+        header.innerHTML = `<h3>Select MCP Servers</h3>
+            <div style="display:flex;gap:8px;">
+                <button class="btn-primary small" id="mcp-apply-btn">Apply to Chat</button>
+                <button class="icon-btn small close-pc">✕</button>
+            </div>`;
+
+        // Body (Scrollable)
+        const body = document.createElement('div');
+        body.className = 'settings-body';
+        body.style.flex = '1';
+        body.style.overflowY = 'auto';
+
+        // Render Servers with Checkboxes
+        serverList.forEach(([name, config], index) => {
+            const item = document.createElement('label');
+            item.className = 'shortcut-row';
+            item.style.cursor = 'pointer';
+            item.style.padding = '10px 12px';
+            item.style.borderRadius = '8px';
+            item.style.marginBottom = '8px';
+            item.style.border = '1px solid var(--border-color)';
+            item.style.display = 'flex';
+            item.style.alignItems = 'center';
+            item.style.background = 'var(--bg-sidebar)';
+            item.onmouseover = () => item.style.borderColor = 'var(--primary)';
+            item.onmouseout = () => item.style.borderColor = 'var(--border-color)';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = name;
+            checkbox.style.marginRight = '12px';
+            checkbox.style.width = '18px';
+            checkbox.style.height = '18px';
+            checkbox.checked = true; // Default select all
+
+            const info = document.createElement('div');
+            info.style.flex = '1';
+            info.innerHTML = `
+                <div style="font-weight:600; font-size:15px;">${name}</div>
+                <div style="font-size:11px; color:var(--text-tertiary); margin-top:4px; font-family:monospace; word-break:break-all;">
+                    ${config.url || config.endpoint || 'No URL'}
+                </div>
+            `;
+
+            item.appendChild(checkbox);
+            item.appendChild(info);
+            body.appendChild(item);
+        });
+
+        content.appendChild(header);
+        content.appendChild(body);
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+
+        // Event Listeners
+        const applyBtn = modal.querySelector('#mcp-apply-btn');
+        applyBtn.onclick = () => {
+            const checkboxes = body.querySelectorAll('input[type="checkbox"]:checked');
+            const selectedServers = Array.from(checkboxes).map(cb => {
+                const serverName = cb.value;
+                const serverConfig = serverList.find(s => s[0] === serverName);
+                return { name: serverName, config: serverConfig ? serverConfig[1] : {} };
+            });
+
+            if (selectedServers.length > 0) {
+                // Use new MCP controller to update selection
+                selectedServers.forEach(server => {
+                    this.app.mcp.selectMcp(server.name);
+                });
+            }
+            modal.remove();
+        };
+
+        modal.querySelector('.close-pc').onclick = () => modal.remove();
+        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    }
+
+    // Legacy method - kept for backwards compatibility but no longer injects text
+    injectMcpContext(selectedServers) {
+        // Now handled by MCPController - just update selections
+        if (!selectedServers || selectedServers.length === 0) return;
+        selectedServers.forEach(server => {
+            this.app.mcp.selectMcp(server.name);
+        });
+    }
+
+    handleMcpTools(tools) {
+        if (!tools || tools.length === 0) {
+            alert(t('noToolsFound') || "No MCP tools found. Please configure a server first.");
+            return;
+        }
+
+        // Show a simple selection UI (e.g., prompt or temporary modal)
+        // For MVP, let's create a temporary modal logic here or delegate to UI
+        // Since we don't have a dedicated Tools Modal class yet, we can create one dynamically
+        // or just append tool definitions to input for now as per plan.
+
+        // Let's create a dynamic modal for better UX
+        this.showToolPicker(tools);
+    }
+
+    showToolPicker(tools) {
+        const modalId = 'mcp-tool-picker';
+        let modal = document.getElementById(modalId);
+        if (modal) modal.remove();
+
+        modal = document.createElement('div');
+        modal.id = modalId;
+        modal.className = 'settings-modal visible';
+        modal.style.zIndex = '2000';
+
+        const content = document.createElement('div');
+        content.className = 'settings-content';
+        content.style.maxWidth = '500px';
+        content.style.maxHeight = '80vh';
+        content.style.display = 'flex';
+        content.style.flexDirection = 'column';
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'settings-header';
+        header.innerHTML = `<h3>Select Tools to Use</h3>
+            <div style="display:flex;gap:8px;">
+                <button class="btn-primary small" id="mcp-confirm-btn">Insert Selected</button>
+                <button class="icon-btn small close-pc">✕</button>
+            </div>`;
+
+        // Body (Scrollable)
+        const body = document.createElement('div');
+        body.className = 'settings-body';
+        body.style.flex = '1';
+        body.style.overflowY = 'auto';
+
+        // Render Tools with Checkboxes
+        tools.forEach((tool, index) => {
+            const item = document.createElement('label');
+            item.className = 'shortcut-row';
+            item.style.cursor = 'pointer';
+            item.style.padding = '8px';
+            item.style.borderRadius = '6px';
+            item.style.marginBottom = '4px';
+            item.style.border = '1px solid var(--border-color)';
+            item.style.display = 'flex';
+            item.style.alignItems = 'center';
+            item.onmouseover = () => item.style.background = 'var(--bg-input)';
+            item.onmouseout = () => item.style.background = 'transparent';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = index;
+            checkbox.style.marginRight = '12px';
+            checkbox.style.width = '16px';
+            checkbox.style.height = '16px';
+
+            const info = document.createElement('div');
+            info.style.flex = '1';
+            info.innerHTML = `
+                <div style="font-weight:600; font-size:14px;">${tool.name}</div>
+                <div style="font-size:12px;color:var(--text-tertiary); margin-top:2px;">${tool.description || 'No description'}</div>
+                <div style="font-size:10px;color:var(--text-tertiary); margin-top:2px; font-family:monospace;">Server: ${tool._serverId}</div>
+            `;
+
+            item.appendChild(checkbox);
+            item.appendChild(info);
+            body.appendChild(item);
+        });
+
+        content.appendChild(header);
+        content.appendChild(body);
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+
+        // Event Listeners
+        const confirmBtn = modal.querySelector('#mcp-confirm-btn');
+        confirmBtn.onclick = () => {
+            const checkboxes = body.querySelectorAll('input[type="checkbox"]:checked');
+            const selectedTools = Array.from(checkboxes).map(cb => tools[cb.value]);
+
+            if (selectedTools.length > 0) {
+                this.injectTools(selectedTools);
+            }
+            modal.remove();
+        };
+
+        modal.querySelector('.close-pc').onclick = () => modal.remove();
+        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    }
+
+    // Legacy method - kept for backwards compatibility but no longer injects text
+    injectTools(selectedTools) {
+        // The new flow uses MCPController to track selected servers
+        // Tool details are sent via mcpIds in the request
+        if (!selectedTools || selectedTools.length === 0) return;
+
+        // Extract unique server IDs and select them
+        const serverIds = new Set(selectedTools.map(t => t._serverId).filter(Boolean));
+        serverIds.forEach(id => this.app.mcp.selectMcp(id));
     }
 
     handleStreamUpdate(request) {
         // If we don't have a bubble yet, create one
         if (!this.streamingBubble) {
-            this.streamingBubble = appendMessage(this.ui.historyDiv, "", 'ai', null, "");
+            // Get current MCP IDs from controller
+            const mcpIds = this.app.mcp ? this.app.mcp.getSelectedMcpIds() : [];
+            this.streamingBubble = appendMessage(this.ui.historyDiv, "", 'ai', null, "", mcpIds);
         }
-        
+
         // Update content if text or thoughts exist
         this.streamingBubble.update(request.text, request.thoughts);
-        
+
         // Ensure UI state reflects generation
         if (!this.app.isGenerating) {
             this.app.isGenerating = true;
@@ -88,7 +345,7 @@ export class MessageHandler {
     handleGeminiReply(request) {
         this.app.isGenerating = false;
         this.ui.setLoading(false);
-        
+
         const session = this.sessionManager.getCurrentSession();
         if (session) {
             // Note: We do NOT save to sessionManager/storage here anymore.
@@ -102,20 +359,28 @@ export class MessageHandler {
                 this.sessionManager.updateContext(session.id, request.context);
             }
 
+            // Get MCP IDs from controller
+            const mcpIds = this.app.mcp ? this.app.mcp.getSelectedMcpIds() : [];
+
             // Update UI
             if (this.streamingBubble) {
                 // Finalize the streaming bubble with complete text and thoughts
                 this.streamingBubble.update(request.text, request.thoughts);
-                
+
+                // Set MCP badges
+                if (mcpIds.length > 0) {
+                    this.streamingBubble.setMcpIds(mcpIds);
+                }
+
                 // Inject images if any
                 if (request.images && request.images.length > 0) {
                     this.streamingBubble.addImages(request.images);
                 }
-                
+
                 if (request.status !== 'success') {
                     // Optionally style error
                 }
-                
+
                 // Clear reference
                 this.streamingBubble = null;
             } else {
@@ -149,9 +414,9 @@ export class MessageHandler {
                     console.warn("Watermark removal failed, using original", e);
                     img.src = request.base64;
                 }
-                
+
                 img.classList.remove('loading');
-                img.style.minHeight = "auto"; 
+                img.style.minHeight = "auto";
             } else {
                 // Handle error visually
                 img.style.background = "#ffebee"; // Light red
@@ -166,12 +431,12 @@ export class MessageHandler {
         try {
             const croppedBase64 = await cropImage(request.image, request.area);
             this.imageManager.setFile(croppedBase64, 'image/png', 'snip.png');
-            
+
             if (this.app.captureMode === 'ocr') {
                 // Change prompt to localized OCR instructions
                 this.ui.inputFn.value = t('ocrPrompt');
                 // Auto-send via the main controller
-                this.app.handleSendMessage(); 
+                this.app.handleSendMessage();
             } else if (this.app.captureMode === 'screenshot_translate') {
                 // Change prompt to localized Translate instructions
                 this.ui.inputFn.value = t('screenshotTranslatePrompt');
@@ -185,26 +450,26 @@ export class MessageHandler {
             this.ui.updateStatus(t('errorScreenshot'));
         }
     }
-    
+
     handleSelectionResult(request) {
         if (request.text && request.text.trim()) {
-             const quote = `> ${request.text.trim()}\n\n`;
-             const input = this.ui.inputFn;
-             // Append to new line if text exists
-             input.value = input.value ? input.value + "\n\n" + quote : quote;
-             input.focus();
-             // Trigger resize
-             input.dispatchEvent(new Event('input'));
+            const quote = `> ${request.text.trim()}\n\n`;
+            const input = this.ui.inputFn;
+            // Append to new line if text exists
+            input.value = input.value ? input.value + "\n\n" + quote : quote;
+            input.focus();
+            // Trigger resize
+            input.dispatchEvent(new Event('input'));
         } else {
-             this.ui.updateStatus(t('noTextSelected'));
-             setTimeout(() => this.ui.updateStatus(""), 2000);
+            this.ui.updateStatus(t('noTextSelected'));
+            setTimeout(() => this.ui.updateStatus(""), 2000);
         }
     }
 
     // Called by AppController on cancel/switch
     resetStream() {
         if (this.streamingBubble) {
-             this.streamingBubble = null;
+            this.streamingBubble = null;
         }
     }
 }

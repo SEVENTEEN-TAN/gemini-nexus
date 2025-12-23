@@ -7,6 +7,11 @@ export class GeminiSessionManager {
     constructor() {
         this.auth = new AuthManager();
         this.abortController = null;
+        this.mcpManager = null;
+    }
+
+    setMCPManager(manager) {
+        this.mcpManager = manager;
     }
 
     async ensureInitialized() {
@@ -46,14 +51,66 @@ export class GeminiSessionManager {
                     this.auth.checkModelChange(request.model);
                     const context = await this.auth.getOrFetchContext();
 
-                    const response = await sendGeminiMessage(
-                        request.text,
+                    // --- MCP INJECTION ---
+                    let finalText = request.text;
+                    let mcpPrompt = null;
+                    if (this.mcpManager && request.mcpIds && request.mcpIds.length > 0) {
+                        // Use selected MCP servers only
+                        mcpPrompt = this.mcpManager.getSystemPromptForServers(request.mcpIds);
+                        if (mcpPrompt) {
+                            finalText = `${mcpPrompt}\n\nUser Query: ${request.text}`;
+                        }
+                    }
+                    // ---------------------
+
+                    let response = await sendGeminiMessage(
+                        finalText,
                         context,
                         request.model,
                         files,
                         signal,
                         onUpdate
                     );
+
+                    // --- MCP EXECUTION LOOP (Simple 1-turn) ---
+                    // Check if response contains tool call
+                    const toolCall = this.parseToolCall(response.text);
+                    if (toolCall && this.mcpManager) {
+                        try {
+                            if (onUpdate) onUpdate({
+                                action: "GEMINI_STREAM",
+                                text: response.text + `\n\n> ⚙️ Executing tool: ${toolCall.tool}...`
+                            });
+
+                            const result = await this.mcpManager.executeTool(toolCall.tool, toolCall.args);
+                            const resultText = `Tool Result (${toolCall.tool}):\n${JSON.stringify(result, null, 2)}`;
+
+                            // Feed back to Gemini
+                            // We need to update context from the first response first
+                            await this.auth.updateContext(response.newContext, request.model);
+                            const nextContext = await this.auth.getOrFetchContext(); // Should be the updated one
+
+                            response = await sendGeminiMessage(
+                                resultText,
+                                nextContext,
+                                request.model,
+                                [],
+                                signal,
+                                onUpdate
+                            );
+
+                        } catch (e) {
+                            console.error("MCP Execution Error", e);
+                            if (onUpdate) onUpdate({
+                                action: "GEMINI_STREAM",
+                                text: response.text + `\n\n> ❌ Tool Error: ${e.message}`
+                            });
+                            // Continue with original response if tool fails? Or let the error stand?
+                            // Let's just append the error to the response text so the user sees it.
+                            response.text += `\n\n> ❌ Tool execution failed: ${e.message}`;
+                        }
+                    }
+                    // ------------------------------------------
 
                     // Success!
                     await this.auth.updateContext(response.newContext, request.model);
@@ -157,5 +214,69 @@ export class GeminiSessionManager {
 
     async resetContext() {
         await this.auth.resetContext();
+    }
+
+    parseToolCall(text) {
+        if (!text) return null;
+
+        // Pattern 1: Look for ```json ... ``` blocks containing "action": "call_tool"
+        const codeBlockRegex = /```json\s*(\{[\s\S]*?\})\s*```/g;
+        let match;
+        while ((match = codeBlockRegex.exec(text)) !== null) {
+            try {
+                const json = JSON.parse(match[1]);
+                if (json.action === "call_tool" && json.tool) {
+                    return { tool: json.tool, args: json.args || {} };
+                }
+            } catch (e) {
+                // Ignore invalid JSON
+            }
+        }
+
+        // Pattern 2: Look for bare JSON object (not in code block)
+        // Match from first { to last } that contains "action": "call_tool"
+        const bareJsonRegex = /\{[^{}]*"action"\s*:\s*"call_tool"[^{}]*\}/g;
+        while ((match = bareJsonRegex.exec(text)) !== null) {
+            try {
+                const json = JSON.parse(match[0]);
+                if (json.action === "call_tool" && json.tool) {
+                    return { tool: json.tool, args: json.args || {} };
+                }
+            } catch (e) {
+                // Try to find a larger JSON by scanning for balanced braces
+                // This is a simplistic approach - for complex nested objects we'd need a proper parser
+            }
+        }
+
+        // Pattern 3: Try to extract any JSON-like structure with "call_tool"
+        // More aggressive: find opening brace and try to parse until closing brace
+        const jsonStartIndex = text.indexOf('{"action":"call_tool"') !== -1
+            ? text.indexOf('{"action":"call_tool"')
+            : text.indexOf('{"action": "call_tool"');
+
+        if (jsonStartIndex !== -1) {
+            let braceCount = 0;
+            let endIndex = jsonStartIndex;
+            for (let i = jsonStartIndex; i < text.length; i++) {
+                if (text[i] === '{') braceCount++;
+                if (text[i] === '}') braceCount--;
+                if (braceCount === 0) {
+                    endIndex = i + 1;
+                    break;
+                }
+            }
+
+            try {
+                const jsonStr = text.substring(jsonStartIndex, endIndex);
+                const json = JSON.parse(jsonStr);
+                if (json.action === "call_tool" && json.tool) {
+                    return { tool: json.tool, args: json.args || {} };
+                }
+            } catch (e) {
+                // Final fallback failed
+            }
+        }
+
+        return null;
     }
 }

@@ -173,7 +173,9 @@ window.addEventListener('message', (event) => {
         chrome.runtime.sendMessage(payload)
             .then(response => {
                 // If it's a request demanding a reply (like GET_LOGS), send it back
-                if (payload.action === 'GET_LOGS' && response && iframe.contentWindow) {
+                // If it's a request demanding a reply (like GET_LOGS), send it back
+                const replyActions = ['GET_LOGS', 'MCP_GET_CONFIG', 'MCP_SAVE_CONFIG', 'MCP_GET_TOOLS'];
+                if (replyActions.includes(payload.action) && response && iframe.contentWindow) {
                     iframe.contentWindow.postMessage({
                         action: 'BACKGROUND_MESSAGE',
                         payload: response

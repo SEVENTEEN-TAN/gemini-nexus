@@ -61,6 +61,20 @@ export const SettingsTemplate = `
                 </div>
 
                 <div class="setting-group">
+                    <h4 style="display:flex; align-items:center; gap:6px;">
+                        <span>Model Context Protocol (MCP)</span>
+                        <span class="badge" style="background:#4caf50; color:#fff; font-size:10px; padding:2px 6px; border-radius:4px;">BETA</span>
+                    </h4>
+                    <p class="setting-desc" style="margin-bottom: 8px;">Connect external tools via JSON configuration.</p>
+                    
+                    <textarea id="mcp-config-json" class="shortcut-input" style="width: 100%; height: 120px; font-family: monospace; font-size: 12px; resize: vertical;" placeholder='{"mcpServers": {"demo": {"endpoint": "http://localhost:3000/sse"}}}'></textarea>
+                    
+                    <div class="settings-actions" style="margin-top: 8px;">
+                        <button id="save-mcp-config" class="btn-primary" style="width: 100%;">Save MCP Config</button>
+                    </div>
+                </div>
+
+                <div class="setting-group">
                     <h4 data-i18n="appearance">Appearance</h4>
                     <div class="shortcut-row">
                         <label data-i18n="theme">Theme</label>

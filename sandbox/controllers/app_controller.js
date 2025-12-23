@@ -3,6 +3,7 @@
 import { MessageHandler } from './message_handler.js';
 import { SessionFlowController } from './session_flow.js';
 import { PromptController } from './prompt.js';
+import { MCPController } from './mcp_controller.js';
 import { t } from '../core/i18n.js';
 import { saveSessionsToStorage, sendToBackground } from '../../lib/messaging.js';
 
@@ -11,39 +12,40 @@ export class AppController {
         this.sessionManager = sessionManager;
         this.ui = uiController;
         this.imageManager = imageManager;
-        
-        this.captureMode = 'snip'; 
-        this.isGenerating = false; 
+
+        this.captureMode = 'snip';
+        this.isGenerating = false;
         this.pageContextActive = false;
         this.browserControlActive = false;
-        
+
         // Sidebar Restore Behavior: 'auto', 'restore', 'new'
         this.sidebarRestoreBehavior = 'auto';
 
         // Initialize Message Handler
         this.messageHandler = new MessageHandler(
-            sessionManager, 
-            uiController, 
-            imageManager, 
+            sessionManager,
+            uiController,
+            imageManager,
             this
         );
 
         // Initialize Sub-Controllers
         this.sessionFlow = new SessionFlowController(sessionManager, uiController, this);
         this.prompt = new PromptController(sessionManager, uiController, imageManager, this);
+        this.mcp = new MCPController(this);
     }
 
     setCaptureMode(mode) {
         this.captureMode = mode;
     }
-    
+
     togglePageContext() {
         this.pageContextActive = !this.pageContextActive;
         this.ui.chat.togglePageContext(this.pageContextActive);
-        
+
         if (this.pageContextActive) {
             this.ui.updateStatus(t('pageContextEnabled'));
-            setTimeout(() => { if(!this.isGenerating) this.ui.updateStatus(""); }, 2000);
+            setTimeout(() => { if (!this.isGenerating) this.ui.updateStatus(""); }, 2000);
         }
     }
 
@@ -52,7 +54,7 @@ export class AppController {
             this.togglePageContext();
         } else if (enable) {
             this.ui.updateStatus(t('pageContextActive'));
-            setTimeout(() => { if(!this.isGenerating) this.ui.updateStatus(""); }, 2000);
+            setTimeout(() => { if (!this.isGenerating) this.ui.updateStatus(""); }, 2000);
         }
     }
 
@@ -62,7 +64,7 @@ export class AppController {
         if (btn) {
             btn.classList.toggle('active', this.browserControlActive);
         }
-        
+
         if (this.browserControlActive) {
             // Disable page context if browser control is on (optional preference, 
             // but usually commands don't need full page context context)
@@ -79,14 +81,14 @@ export class AppController {
     switchToSession(sessionId) {
         this.sessionFlow.switchToSession(sessionId);
     }
-    
+
     rerender() {
         const currentId = this.sessionManager.currentSessionId;
         if (currentId) {
             this.switchToSession(currentId);
         }
     }
-    
+
     getSelectedModel() {
         return this.ui.modelSelect ? this.ui.modelSelect.value : "gemini-2.5-flash";
     }
@@ -111,7 +113,7 @@ export class AppController {
 
     async handleIncomingMessage(event) {
         const { action, payload } = event.data;
-        
+
         if (action === 'RESTORE_SIDEBAR_BEHAVIOR') {
             this.sidebarRestoreBehavior = payload;
             // Update UI settings panel
@@ -129,31 +131,31 @@ export class AppController {
 
             // If we are initializing (no current session yet), apply the behavior logic
             if (!currentId || !currentSessionExists) {
-                 const sorted = this.sessionManager.getSortedSessions();
-                 
-                 let shouldRestore = false;
-                 
-                 if (this.sidebarRestoreBehavior === 'new') {
-                     shouldRestore = false;
-                 } else if (this.sidebarRestoreBehavior === 'restore') {
-                     shouldRestore = true;
-                 } else {
-                     // 'auto' mode: Restore if last active within 10 minutes
-                     if (sorted.length > 0) {
-                         const lastActive = sorted[0].timestamp;
-                         const now = Date.now();
-                         const tenMinutes = 10 * 60 * 1000;
-                         if (now - lastActive < tenMinutes) {
-                             shouldRestore = true;
-                         }
-                     }
-                 }
+                const sorted = this.sessionManager.getSortedSessions();
 
-                 if (shouldRestore && sorted.length > 0) {
-                     this.switchToSession(sorted[0].id);
-                 } else {
-                     this.handleNewChat();
-                 }
+                let shouldRestore = false;
+
+                if (this.sidebarRestoreBehavior === 'new') {
+                    shouldRestore = false;
+                } else if (this.sidebarRestoreBehavior === 'restore') {
+                    shouldRestore = true;
+                } else {
+                    // 'auto' mode: Restore if last active within 10 minutes
+                    if (sorted.length > 0) {
+                        const lastActive = sorted[0].timestamp;
+                        const now = Date.now();
+                        const tenMinutes = 10 * 60 * 1000;
+                        if (now - lastActive < tenMinutes) {
+                            shouldRestore = true;
+                        }
+                    }
+                }
+
+                if (shouldRestore && sorted.length > 0) {
+                    this.switchToSession(sorted[0].id);
+                } else {
+                    this.handleNewChat();
+                }
             }
             return;
         }
@@ -171,5 +173,22 @@ export class AppController {
     // though now sessionFlow handles refresh.
     persistSessions() {
         saveSessionsToStorage(this.sessionManager.sessions);
+    }
+
+    handleFileUpload(files) {
+        this.imageManager.handleFiles(files);
+    }
+
+    // --- MCP Logic ---
+
+    handleMcpSelection() {
+        // Request configured MCP Servers from background (reads storage)
+        window.parent.postMessage({
+            action: 'FORWARD_TO_BACKGROUND',
+            payload: { action: 'MCP_GET_CONFIG' }
+        }, '*');
+
+        // The response will come back via handleIncomingMessage > messageHandler
+        // and handled by a new method: handleMcpConfig
     }
 }

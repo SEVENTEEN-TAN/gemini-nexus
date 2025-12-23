@@ -77,11 +77,43 @@ export const FooterTemplate = `
             <!-- Dynamic Image Preview Container -->
             <div id="image-preview" class="image-preview"></div>
             
+            <!-- MCP Tags Container (shows selected MCP servers) -->
+            <div id="mcp-tags" class="mcp-tags-container"></div>
+            
             <div class="input-row">
-                <label id="upload-btn" data-i18n-title="uploadImageTooltip" title="Upload File">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                <div class="action-menu-container">
+                    <button id="upload-btn" class="icon-btn action-trigger" data-i18n-title="addAttachmentTooltip" title="Add Attachment / Tool">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </button>
+                    <!-- Action Menu -->
+                    <div id="action-menu" class="action-menu hidden">
+                        <div class="menu-item" id="action-upload">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                            <span data-i18n="uploadFile">Upload File</span>
+                        </div>
+                        <div class="menu-item" id="action-mcp">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                            <span data-i18n="mcpTools">MCP Tools</span>
+                        </div>
+                    </div>
+                    
+                    <!-- MCP Server Picker Modal -->
+                    <div id="mcp-picker" class="mcp-picker hidden">
+                        <div class="mcp-picker-header">
+                            <span data-i18n="selectMcpServer">Select MCP Server</span>
+                        </div>
+                        <div id="mcp-server-list" class="mcp-server-list">
+                            <!-- Dynamically populated -->
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden File Input for Trigger -->
                     <input type="file" id="image-input" multiple accept="image/*, .pdf, .txt, .js, .py, .html, .css, .json, .csv, .md" style="display: none;">
-                </label>
+                </div>
+
                 <textarea id="prompt" data-i18n-placeholder="askPlaceholder" placeholder="Ask Gemini..." rows="1"></textarea>
                 <button id="send" data-i18n-title="sendMessageTooltip" title="Send message">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>

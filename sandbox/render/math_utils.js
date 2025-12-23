@@ -8,7 +8,13 @@ export class MathHandler {
 
     protect(text) {
         this.blocks = [];
-        
+
+        // Ensure text is a string
+        if (typeof text !== 'string') {
+            console.warn('[MathHandler] protect() received non-string:', typeof text, text);
+            return text;
+        }
+
         const protect = (regex, isDisplay) => {
             text = text.replace(regex, (match, content) => {
                 const id = `@@MATH_BLOCK_${this.blocks.length}@@`;
@@ -19,7 +25,7 @@ export class MathHandler {
 
         // 1. Block Math: \$\$ ... \$\$ (Gemini specific)
         protect(/\\\$\$([\s\S]+?)\\\$\$/g, true);
-        
+
         // 2. Block Math: $$ ... $$
         protect(/\$\$([\s\S]+?)\$\$/g, true);
 
@@ -45,10 +51,10 @@ export class MathHandler {
                 .replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;");
-            
+
             // Use standard delimiters for KaTeX
             const delim = isDisplay ? '$$' : '$';
-            
+
             html = html.replace(id, `${delim}${safeContent}${delim}`);
         });
         return html;

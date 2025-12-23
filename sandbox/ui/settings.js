@@ -8,11 +8,11 @@ import { DEFAULT_SHORTCUTS } from '../../lib/constants.js';
 export class SettingsController {
     constructor(callbacks) {
         this.callbacks = callbacks || {};
-        
+
         // State
         this.defaultShortcuts = { ...DEFAULT_SHORTCUTS };
         this.shortcuts = { ...this.defaultShortcuts };
-        
+
         this.textSelectionEnabled = true;
         this.imageToolsEnabled = true;
         this.accountIndices = "0";
@@ -22,29 +22,58 @@ export class SettingsController {
             onOpen: () => this.handleOpen(),
             onSave: (data) => this.saveSettings(data),
             onReset: () => this.resetSettings(),
-            
+
             onThemeChange: (theme) => this.setTheme(theme),
             onLanguageChange: (lang) => this.setLanguage(lang),
-            
+
             onTextSelectionChange: (val) => { this.textSelectionEnabled = (val === 'on' || val === true); saveTextSelectionToStorage(this.textSelectionEnabled); },
             onImageToolsChange: (val) => { this.imageToolsEnabled = (val === 'on' || val === true); saveImageToolsToStorage(this.imageToolsEnabled); },
             onSidebarBehaviorChange: (val) => saveSidebarBehaviorToStorage(val),
-            onDownloadLogs: () => this.downloadLogs()
+            onDownloadLogs: () => this.downloadLogs(),
+            onSaveMcp: (json) => this.saveMcpConfig(json)
         });
-        
+
         // External Trigger Binding
         const trigger = document.getElementById('settings-btn');
-        if(trigger) {
+        if (trigger) {
             trigger.addEventListener('click', () => {
                 this.open();
                 if (this.callbacks.onOpen) this.callbacks.onOpen();
             });
         }
-        
-        // Listen for log data
+
+        // Listen for log data & MCP responses
         window.addEventListener('message', (e) => {
-            if (e.data.action === 'BACKGROUND_MESSAGE' && e.data.payload && e.data.payload.logs) {
-                this.saveLogFile(e.data.payload.logs);
+            if (e.data.action === 'BACKGROUND_MESSAGE' && e.data.payload) {
+                const payload = e.data.payload;
+
+                // Logs
+                if (payload.logs) {
+                    this.saveLogFile(payload.logs);
+                    return;
+                }
+
+                // MCP Config Check (heuristic: starts with mcpServers key or checking known structure, 
+                // but since GET_CONFIG returns stringified JSON...)
+                // Actually, background/messages.js sends response directly.
+                // sidepanel wraps it in { payload: response }.
+
+                // If it looks like MCP config (string)
+                if (typeof payload === 'string' && payload.includes('"mcpServers"')) {
+                    this.view.setMcpConfig(payload);
+                    return;
+                }
+
+                // If it's a save result
+                if (payload.success !== undefined && payload.mcpServers === undefined) {
+                    // Assume it's save result if prompt save returns success
+                    // But wait, saveConfig returns { success: true/false }
+                    if (payload.success) {
+                        alert("MCP Configuration Saved!");
+                    } else if (payload.error) {
+                        alert("Error Saving MCP Config: " + payload.error);
+                    }
+                }
             }
         });
     }
@@ -63,12 +92,15 @@ export class SettingsController {
         this.view.setLanguageValue(getLanguagePreference());
         this.view.setToggles(this.textSelectionEnabled, this.imageToolsEnabled);
         this.view.setAccountIndices(this.accountIndices);
-        
+
         // Refresh from storage
         requestTextSelectionFromStorage();
         requestImageToolsFromStorage();
         requestAccountIndicesFromStorage();
-        
+
+        // Fetch MCP Config
+        this.fetchMcpConfig();
+
         this.fetchGithubStars();
     }
 
@@ -76,14 +108,14 @@ export class SettingsController {
         // Shortcuts
         this.shortcuts = data.shortcuts;
         saveShortcutsToStorage(this.shortcuts);
-        
+
         // General Toggles
         this.textSelectionEnabled = data.textSelection;
         saveTextSelectionToStorage(this.textSelectionEnabled);
-        
+
         this.imageToolsEnabled = data.imageTools;
         saveImageToolsToStorage(this.imageToolsEnabled);
-        
+
         // Accounts
         let val = data.accountIndices.trim();
         if (!val) val = "0";
@@ -96,23 +128,23 @@ export class SettingsController {
         this.view.setShortcuts(this.defaultShortcuts);
         this.view.setAccountIndices("0");
     }
-    
+
     downloadLogs() {
         sendToBackground({ action: 'GET_LOGS' });
     }
-    
+
     saveLogFile(logs) {
         if (!logs || logs.length === 0) {
             alert("No logs to download.");
             return;
         }
-        
+
         const text = logs.map(l => {
             const time = new Date(l.timestamp).toISOString();
             const dataStr = l.data ? ` | Data: ${JSON.stringify(l.data)}` : '';
             return `[${time}] [${l.level}] [${l.context}] ${l.message}${dataStr}`;
         }).join('\n');
-        
+
         // Send to parent to handle download (Sandbox restriction workaround)
         window.parent.postMessage({
             action: 'DOWNLOAD_LOGS',
@@ -129,17 +161,17 @@ export class SettingsController {
         this.view.applyVisualTheme(theme);
         saveThemeToStorage(theme);
     }
-    
+
     updateTheme(theme) {
         this.view.setThemeValue(theme);
     }
-    
+
     setLanguage(newLang) {
         setLanguagePreference(newLang);
         saveLanguageToStorage(newLang);
         document.dispatchEvent(new CustomEvent('gemini-language-changed'));
     }
-    
+
     updateLanguage(lang) {
         setLanguagePreference(lang);
         this.view.setLanguageValue(lang);
@@ -152,7 +184,7 @@ export class SettingsController {
             this.view.setShortcuts(this.shortcuts);
         }
     }
-    
+
     updateTextSelection(enabled) {
         this.textSelectionEnabled = enabled;
         this.view.setToggles(this.textSelectionEnabled, this.imageToolsEnabled);
@@ -162,7 +194,7 @@ export class SettingsController {
         this.imageToolsEnabled = enabled;
         this.view.setToggles(this.textSelectionEnabled, this.imageToolsEnabled);
     }
-    
+
     updateSidebarBehavior(behavior) {
         this.view.setSidebarBehavior(behavior);
     }
@@ -173,7 +205,7 @@ export class SettingsController {
     }
 
     async fetchGithubStars() {
-        if (this.view.hasFetchedStars()) return; 
+        if (this.view.hasFetchedStars()) return;
 
         try {
             const res = await fetch('https://api.github.com/repos/yeahhe365/gemini-nexus');
@@ -184,5 +216,22 @@ export class SettingsController {
         } catch (e) {
             this.view.displayStars(null);
         }
+    }
+
+    // --- MCP Methods ---
+
+    fetchMcpConfig() {
+        sendToBackground({ action: 'MCP_GET_CONFIG' });
+    }
+
+    saveMcpConfig(jsonStr) {
+        // Basic validation
+        try {
+            JSON.parse(jsonStr);
+        } catch (e) {
+            alert("Invalid JSON format");
+            return;
+        }
+        sendToBackground({ action: 'MCP_SAVE_CONFIG', json: jsonStr });
     }
 }

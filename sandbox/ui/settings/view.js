@@ -5,43 +5,46 @@ export class SettingsView {
     constructor(callbacks) {
         this.callbacks = callbacks || {};
         this.elements = {};
-        
+
         this.queryElements();
         this.bindEvents();
     }
 
     queryElements() {
         const get = (id) => document.getElementById(id);
-        
+
         this.elements = {
             modal: get('settings-modal'),
             btnClose: get('close-settings'),
-            
+
             themeSelect: get('theme-select'),
             languageSelect: get('language-select'),
-            
+
             textSelectionToggle: get('text-selection-toggle'),
             imageToolsToggle: get('image-tools-toggle'),
             accountIndicesInput: get('account-indices-input'),
-            
+
             inputQuickAsk: get('shortcut-quick-ask'),
             inputOpenPanel: get('shortcut-open-panel'),
-            
+
             btnSave: get('save-shortcuts'),
             btnReset: get('reset-shortcuts'),
-            
+
             btnDownloadLogs: get('download-logs'),
-            
+
+            mcpConfigInput: get('mcp-config-json'),
+            btnSaveMcp: get('save-mcp-config'),
+
             starEl: get('star-count'),
-            
+
             sidebarRadios: document.querySelectorAll('input[name="sidebar-behavior"]')
         };
     }
 
     bindEvents() {
-        const { modal, btnClose, btnSave, btnReset, themeSelect, languageSelect, 
-                inputQuickAsk, inputOpenPanel, textSelectionToggle, imageToolsToggle, 
-                accountIndicesInput, sidebarRadios, btnDownloadLogs } = this.elements;
+        const { modal, btnClose, btnSave, btnReset, themeSelect, languageSelect,
+            inputQuickAsk, inputOpenPanel, textSelectionToggle, imageToolsToggle,
+            accountIndicesInput, sidebarRadios, btnDownloadLogs, btnSaveMcp, mcpConfigInput } = this.elements;
 
         // Modal actions
         if (btnClose) btnClose.addEventListener('click', () => this.close());
@@ -54,7 +57,13 @@ export class SettingsView {
         // Action Buttons
         if (btnSave) btnSave.addEventListener('click', () => this.handleSave());
         if (btnReset) btnReset.addEventListener('click', () => this.handleReset());
-        
+
+        if (btnSaveMcp) {
+            btnSaveMcp.addEventListener('click', () => {
+                if (mcpConfigInput) this.fire('onSaveMcp', mcpConfigInput.value);
+            });
+        }
+
         if (btnDownloadLogs) {
             btnDownloadLogs.addEventListener('click', () => this.fire('onDownloadLogs'));
         }
@@ -66,7 +75,7 @@ export class SettingsView {
         if (languageSelect) {
             languageSelect.addEventListener('change', (e) => this.fire('onLanguageChange', e.target.value));
         }
-        
+
         // Toggles
         if (textSelectionToggle) {
             textSelectionToggle.addEventListener('change', (e) => this.fire('onTextSelectionChange', e.target.value));
@@ -77,7 +86,7 @@ export class SettingsView {
         if (sidebarRadios) {
             sidebarRadios.forEach(radio => {
                 radio.addEventListener('change', (e) => {
-                    if(e.target.checked) this.fire('onSidebarBehaviorChange', e.target.value);
+                    if (e.target.checked) this.fire('onSidebarBehaviorChange', e.target.value);
                 });
             });
         }
@@ -88,9 +97,9 @@ export class SettingsView {
 
         // System Theme Listener
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-             if (themeSelect && themeSelect.value === 'system') {
-                 this.applyVisualTheme('system');
-             }
+            if (themeSelect && themeSelect.value === 'system') {
+                this.applyVisualTheme('system');
+            }
         });
 
         // Keyboard
@@ -103,7 +112,7 @@ export class SettingsView {
 
     handleSave() {
         const { inputQuickAsk, inputOpenPanel, textSelectionToggle, imageToolsToggle, accountIndicesInput } = this.elements;
-        
+
         const data = {
             shortcuts: {
                 quickAsk: inputQuickAsk ? inputQuickAsk.value : null,
@@ -113,7 +122,7 @@ export class SettingsView {
             imageTools: imageToolsToggle ? imageToolsToggle.checked : true,
             accountIndices: accountIndicesInput ? accountIndicesInput.value : "0"
         };
-        
+
         this.fire('onSave', data);
         this.close();
     }
@@ -127,13 +136,13 @@ export class SettingsView {
         inputEl.addEventListener('keydown', (e) => {
             e.preventDefault(); e.stopPropagation();
             if (['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) return;
-            
+
             const keys = [];
             if (e.ctrlKey) keys.push('Ctrl');
             if (e.altKey) keys.push('Alt');
             if (e.shiftKey) keys.push('Shift');
             if (e.metaKey) keys.push('Meta');
-            
+
             let k = e.key.toUpperCase();
             if (k === ' ') k = 'Space';
             keys.push(k);
@@ -189,10 +198,14 @@ export class SettingsView {
         if (this.elements.accountIndicesInput) this.elements.accountIndicesInput.value = val || "0";
     }
 
+    setMcpConfig(jsonStr) {
+        if (this.elements.mcpConfigInput) this.elements.mcpConfigInput.value = jsonStr || "";
+    }
+
     applyVisualTheme(theme) {
         let applied = theme;
         if (theme === 'system') {
-             applied = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            applied = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
         document.documentElement.setAttribute('data-theme', applied);
     }
@@ -200,9 +213,9 @@ export class SettingsView {
     displayStars(count) {
         const { starEl } = this.elements;
         if (!starEl) return;
-        
+
         if (count) {
-            const formatted = count > 999 ? (count/1000).toFixed(1) + 'k' : count;
+            const formatted = count > 999 ? (count / 1000).toFixed(1) + 'k' : count;
             starEl.textContent = `★ ${formatted}`;
             starEl.style.display = 'inline-flex';
             starEl.dataset.fetched = "true";
