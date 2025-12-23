@@ -1,0 +1,119 @@
+
+
+
+
+
+.header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 16px 20px;
+    z-index: 10;
+    pointer-events: none; /* Let clicks pass through empty space */
+}
+
+/* Wide Layout Overrides */
+body.layout-wide .header {
+    padding-left: 300px; /* Sidebar width + padding */
+}
+
+body.layout-wide #history-toggle {
+    display: none;
+}
+
+.header-left, .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    pointer-events: auto;
+}
+
+.header .icon-btn {
+    width: 33px;
+    height: 33px;
+}
+
+.header .icon-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.header-title {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text-secondary);
+}
+
+/* Model Selector */
+.model-select-wrapper {
+    position: relative;
+    pointer-events: auto;
+}
+
+#model-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--icon-btn-bg);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--icon-btn-border);
+    border-radius: 16px;
+    height: 33px;
+    line-height: 31px; /* Center text vertically */
+    padding: 0 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    font-family: inherit;
+    text-align: center;
+}
+
+#model-select:hover {
+    background: var(--icon-btn-hover);
+    color: var(--text-primary);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+
+#model-select:active {
+    transform: translateY(0);
+}
+
+/* Corner Button Styles */
+.corner-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 40px;
+    height: 40px;
+    background: var(--bg-sidebar);
+    border: none;
+    cursor: pointer;
+    z-index: 50;
+    padding: 0;
+    /* Triangle shape: Top-Left to Top-Right to Bottom-Right */
+    clip-path: polygon(0 0, 100% 0, 100% 100%);
+    color: var(--text-tertiary);
+    transition: background-color 0.2s, color 0.2s;
+    pointer-events: auto;
+}
+
+.corner-btn:hover {
+    background-color: var(--btn-hover);
+    color: var(--primary);
+}
+
+.corner-btn svg {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 16px;
+    height: 16px;
+}

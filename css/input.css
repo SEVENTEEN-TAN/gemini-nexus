@@ -1,0 +1,386 @@
+
+
+
+
+
+
+
+.footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 0 20px 24px 20px;
+    background: linear-gradient(to top, var(--footer-gradient-start) 80%, transparent); 
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none; 
+}
+
+/* Wide Layout Overrides */
+body.layout-wide .footer {
+    padding-left: 300px; /* Sidebar width + padding */
+}
+
+/* Hide unsupported buttons in wide (full-page) mode */
+/* body.layout-wide .tool-btn.context-aware {
+    display: none !important;
+} */
+
+body.layout-wide .input-wrapper {
+    margin: 0 auto;
+}
+
+body.layout-wide .tools-container {
+    justify-content: flex-start; /* Was center, changed to allow scrolling */
+    margin: 0 auto 8px auto;
+}
+
+#status { 
+    font-size: 12px; 
+    color: var(--text-tertiary);
+    text-align: center; 
+    margin-bottom: 8px; 
+    min-height: 18px; 
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.input-wrapper {
+    background: var(--bg-input); 
+    border: 1px solid transparent;
+    border-radius: 28px; 
+    padding: 8px 8px 8px 16px; 
+    display: flex;
+    flex-direction: column;
+    transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+    width: 100%;
+    max-width: 800px;
+    pointer-events: auto; 
+    box-sizing: border-box;
+}
+
+/* Active State: White with shadow */
+.input-wrapper:focus-within { 
+    background: var(--bg-input-focus);
+    border-color: var(--border-focus); 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.input-wrapper.dragging { 
+    background-color: var(--btn-active-bg); 
+    border-color: var(--primary); 
+}
+
+/* Tools Container & Navigation */
+.tools-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    max-width: 800px;
+    margin-bottom: 8px;
+    pointer-events: auto;
+}
+
+.scroll-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--bg-body);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    opacity: 0;
+    transform: translateY(-50%) scale(0.9);
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.tools-container:hover .scroll-nav-btn {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+    pointer-events: auto;
+}
+
+.scroll-nav-btn:hover {
+    background: var(--primary);
+    color: var(--on-primary);
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(11, 87, 208, 0.25);
+}
+
+/* Ensure scaling works on hover with enough specificity */
+.tools-container .scroll-nav-btn:hover {
+    transform: translateY(-50%) scale(1.15);
+}
+
+.scroll-nav-btn.left { left: -10px; }
+.scroll-nav-btn.right { right: -10px; }
+
+.tools-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    width: 100%;
+    padding: 2px 4px;
+    box-sizing: border-box;
+    
+    /* Mobile Scrolling */
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+}
+.tools-row::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+}
+
+.tool-btn {
+    background: var(--tool-bg);
+    backdrop-filter: blur(4px);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+    transition: all 0.2s;
+    flex-shrink: 0; /* Prevent shrinking on mobile */
+}
+.tool-btn:hover { background: var(--tool-hover); color: var(--text-primary); border-color: var(--text-secondary); }
+
+.tool-btn.active {
+    background: var(--btn-active-bg);
+    color: var(--primary);
+    border-color: rgba(11, 87, 208, 0.2);
+}
+
+.tool-btn svg { width: 14px; height: 14px; }
+
+.input-row { display: flex; align-items: flex-end; gap: 4px; padding-bottom: 0; }
+
+/* Textarea */
+#prompt {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    padding: 10px 4px;
+    background: transparent;
+    min-height: 24px;
+    max-height: 200px;
+    color: var(--text-primary);
+    font-family: inherit;
+    resize: none;
+    line-height: 1.5;
+    margin-left: 6px; /* Spacing from buttons */
+}
+
+#prompt::placeholder { color: var(--input-placeholder); }
+
+/* Buttons */
+#upload-btn {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    color: var(--text-secondary);
+    border-radius: 50%;
+    transition: background 0.2s, color 0.2s;
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    margin-bottom: 2px;
+}
+#upload-btn:hover { color: var(--text-primary); background: var(--btn-hover); }
+
+#send { 
+    width: 40px; 
+    height: 40px; 
+    background: var(--primary); 
+    color: var(--on-primary); 
+    border: none; 
+    border-radius: 50%; 
+    cursor: pointer; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.2, 0, 0, 1); 
+    flex-shrink: 0;
+    margin-bottom: 2px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    margin-left: 6px;
+}
+#send:hover { background: var(--primary-hover); box-shadow: 0 4px 8px rgba(0,0,0,0.2); transform: scale(1.05); }
+#send:active { transform: scale(0.95); }
+#send:disabled { background: var(--btn-hover); color: var(--text-tertiary); cursor: default; box-shadow: none; transform: none; }
+
+#send svg { width: 20px; height: 20px; }
+#send:not(.generating) svg { transform: translateX(-1px) translateY(1px); }
+
+/* --- Image/File Preview Area (Multi-item) --- */
+.image-preview {
+    display: none; 
+    gap: 8px;
+    margin-bottom: 8px;
+    width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: thin;
+    padding-bottom: 4px;
+}
+
+.image-preview.has-image {
+    display: flex;
+    animation: fadeIn 0.2s ease;
+}
+
+.preview-item {
+    position: relative;
+    flex-shrink: 0;
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-sidebar);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.preview-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Don't crop preview images */
+    background: rgba(0,0,0,0.05); /* Subtle background to see boundaries */
+}
+
+/* File Card for non-image uploads within preview item */
+.file-item-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    gap: 4px;
+}
+.file-item-card svg {
+    width: 20px;
+    height: 20px;
+    color: var(--text-secondary);
+}
+.file-item-card span {
+    font-size: 8px;
+    color: var(--text-primary);
+    max-width: 50px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.preview-remove-btn {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.5);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    cursor: pointer;
+    border: none;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.preview-item:hover .preview-remove-btn {
+    opacity: 1;
+}
+
+.preview-remove-btn:hover {
+    background: #d93025;
+}
+
+/* --- Animation & Loading States --- */
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+}
+
+/* Status Loading State */
+#status.thinking {
+    color: var(--primary);
+    animation: pulse 1.5s infinite ease-in-out;
+}
+
+/* Generating Button (Spinner Mode) */
+#send.generating {
+    background: transparent !important;
+    color: var(--primary);
+    box-shadow: none !important;
+    cursor: pointer;
+    position: relative;
+    border: 2px solid transparent; 
+}
+
+/* Create Spinner Ring */
+#send.generating::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border-radius: 50%;
+    border: 2px solid var(--border-color); /* Track */
+    border-top-color: var(--primary); /* Indicator */
+    animation: spin 0.8s linear infinite;
+}
+
+#send.generating:hover {
+    background: rgba(0,0,0,0.05) !important;
+    transform: none !important;
+}
+
+/* Adjust Stop Icon inside Spinner */
+#send.generating svg {
+    transform: scale(0.85);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 600px) {
+    .footer {
+        padding: 0 12px 16px 12px;
+    }
+    .input-wrapper {
+        padding: 6px 6px 6px 12px;
+    }
+}

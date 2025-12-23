@@ -1,0 +1,47 @@
+// sandbox/boot/loader.js
+import { configureMarkdown } from '../render/config.js';
+
+export function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+}
+
+export function loadCSS(href) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+}
+
+export async function loadLibs() {
+    try {
+        // Load Marked (Priority for chat rendering)
+        // Now loading locally from vendor/ to ensure reliability
+        await loadScript('vendor/marked.min.js').catch(e => console.warn("Marked load issue:", e));
+        
+        // Re-run config now that marked is loaded
+        configureMarkdown();
+
+        // Load others in parallel (Local Vendor)
+        loadCSS('vendor/katex.min.css');
+        loadCSS('vendor/atom-one-dark.min.css');
+
+        Promise.all([
+            loadScript('vendor/highlight.min.js'),
+            loadScript('vendor/katex.min.js'),
+            loadScript('vendor/fuse.basic.min.js')
+        ]).then(() => {
+             // Auto-render ext for Katex
+             return loadScript('vendor/auto-render.min.js');
+        }).catch(e => console.warn("Optional libs load failed", e));
+
+        console.log("Lazy dependencies loaded from local vendor.");
+    } catch (e) {
+        console.warn("Deferred loading failed", e);
+    }
+}

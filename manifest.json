@@ -1,0 +1,93 @@
+
+{
+  "manifest_version": 3,
+  "name": "Gemini Nexus",
+  "version": "4.0.0",
+  "permissions": ["sidePanel", "storage", "contextMenus", "scripting", "alarms", "debugger", "downloads"],
+  "host_permissions": [
+    "https://gemini.google.com/*",
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background/index.js",
+    "type": "module"
+  },
+  "icons": {
+    "16": "logo.png",
+    "32": "logo.png",
+    "48": "logo.png",
+    "128": "logo.png"
+  },
+  "action": {
+    "default_title": "Open Gemini Chat",
+    "default_icon": "logo.png"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+S",
+        "mac": "Alt+S"
+      },
+      "description": "Open Gemini Nexus Sidebar"
+    }
+  },
+  "side_panel": {
+    "default_path": "sidepanel/index.html"
+  },
+  "sandbox": {
+    "pages": ["sandbox/index.html"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "content/overlay.js", 
+        "content/toolbar/icons.js",
+        "content/toolbar/styles/core.js",
+        "content/toolbar/styles/widget.js",
+        "content/toolbar/styles/panel/layout.js",
+        "content/toolbar/styles/panel/header.js",
+        "content/toolbar/styles/panel/body.js",
+        "content/toolbar/styles/panel/footer.js",
+        "content/toolbar/styles/panel/index.js",
+        "content/toolbar/styles/markdown.js",
+        "content/toolbar/styles/index.js",
+        "content/toolbar/bridge.js",
+        "content/toolbar/utils/drag.js",
+        "content/toolbar/i18n.js",
+        "content/toolbar/templates.js",
+        "content/toolbar/view/utils.js",
+        "content/toolbar/view/widget.js",
+        "content/toolbar/view/window.js",
+        "content/toolbar/view/dom.js",
+        "content/toolbar/view/index.js",
+        "content/toolbar/events.js",
+        "content/toolbar/ui/grammar.js",
+        "content/toolbar/ui/renderer.js",
+        "content/toolbar/ui/actions_delegate.js",
+        "content/toolbar/ui/code_copy.js",
+        "content/toolbar/ui/manager.js", 
+        "content/toolbar/actions.js",
+        "content/toolbar/image.js",
+        "content/toolbar/stream.js", 
+        "content/toolbar/utils/input.js",
+        "content/selection.js",
+        "content/toolbar/dispatch.js",
+        "content/toolbar/crop.js",
+        "content/toolbar/controller.js",
+        "content/index.js"
+      ],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["logo.png", "sandbox/index.html"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'",
+    "sandbox": "sandbox allow-scripts allow-forms allow-popups allow-modals; script-src 'self' 'unsafe-inline'; img-src https: http: data: blob:; media-src https: http: data: blob:;"
+  }
+}
