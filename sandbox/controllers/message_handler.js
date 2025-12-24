@@ -229,6 +229,7 @@ export class MessageHandler {
     }
 
     handleGeminiReply(request) {
+        console.log("[MessageHandler] Gemini Reply:", request);
         this.app.isGenerating = false;
         this.ui.setLoading(false);
 

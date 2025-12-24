@@ -85,7 +85,7 @@ export class PromptController {
         this.app.isGenerating = true;
         this.ui.setLoading(true);
 
-        sendToBackground({
+        const payload = {
             action: "SEND_PROMPT",
             text: text,
             files: files, // Send full file objects array
@@ -94,7 +94,11 @@ export class PromptController {
             enableBrowserControl: enableBrowserControl,
             mcpIds: mcpIds, // MCP servers to activate
             sessionId: currentId
-        });
+        };
+
+        console.log("[PromptController] Sending Payload:", payload);
+
+        sendToBackground(payload);
     }
 
     cancel() {
