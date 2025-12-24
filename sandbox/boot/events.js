@@ -264,7 +264,7 @@ export function bindAppEvents(app, ui, setResizeRef) {
                 const contextBtn = document.getElementById('page-context-btn');
                 if (contextBtn && !contextBtn.classList.contains('active')) {
                     // Programmatically activate context
-                    app.togglePageContext(true); 
+                    app.togglePageContext(true);
                 }
 
                 // 2. Fill and Send
@@ -272,6 +272,23 @@ export function bindAppEvents(app, ui, setResizeRef) {
                 const sendBtn = document.getElementById('send');
                 if (sendBtn) sendBtn.click();
             }
+        }
+    });
+
+    // Intercept all links to open in new tab via parent
+    document.addEventListener('click', (e) => {
+        const link = e.target.closest('a');
+        if (link && link.href) {
+            // Check if it's an internal anchor link (optional, but good practice)
+            if (link.hash && link.href.includes(window.location.href.split('#')[0])) {
+                return; // Let internal anchors work normally
+            }
+
+            e.preventDefault();
+            window.parent.postMessage({
+                action: 'OPEN_URL',
+                url: link.href
+            }, '*');
         }
     });
 
