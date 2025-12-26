@@ -3,13 +3,13 @@
 
 // content/toolbar/controller.js
 
-(function() {
+(function () {
     class ToolbarController {
         constructor() {
             // Dependencies
             this.ui = new window.GeminiToolbarUI();
             this.actions = new window.GeminiToolbarActions(this.ui);
-            
+
             // Sub-Modules
             this.imageDetector = new window.GeminiImageDetector({
                 onShow: (rect) => this.ui.showImageButton(rect),
@@ -21,7 +21,7 @@
             });
 
             this.inputManager = new window.GeminiInputManager();
-            
+
             // Initialize Dispatcher with reference to this controller
             this.dispatcher = new window.GeminiToolbarDispatcher(this);
 
@@ -41,9 +41,11 @@
             this.currentMode = 'ask'; // 默认模式
             this.isSelectionEnabled = true;
 
+            this.storedGemId = null; // Manual Gem ID from settings
+
             // Bind Action Handler
             this.handleAction = this.handleAction.bind(this);
-            
+
             this.init();
         }
 
@@ -63,9 +65,19 @@
             });
 
             // Restore floating model preference
-            chrome.storage.local.get(['gemini_floating_model'], (result) => {
+            chrome.storage.local.get(['gemini_floating_model', 'gemini_gem_id'], (result) => {
                 if (result.gemini_floating_model) {
                     this.ui.setSelectedModel(result.gemini_floating_model);
+                }
+                if (result.gemini_gem_id) {
+                    this.storedGemId = result.gemini_gem_id;
+                }
+            });
+
+            // Listen for settings changes
+            chrome.storage.onChanged.addListener((changes, area) => {
+                if (area === 'local' && changes.gemini_gem_id) {
+                    this.storedGemId = changes.gemini_gem_id.newValue;
                 }
             });
 
@@ -73,7 +85,7 @@
             this.imageDetector.init();
             this.streamHandler.init();
         }
-        
+
         setSelectionEnabled(enabled) {
             this.isSelectionEnabled = enabled;
             if (!enabled) {
@@ -123,7 +135,7 @@
             if (window.GeminiImageCropper && request.area) {
                 try {
                     finalImage = await window.GeminiImageCropper.crop(request.image, request.area);
-                } catch(e) {
+                } catch (e) {
                     console.error("Crop failed in content script", e);
                 }
             }
@@ -135,23 +147,23 @@
             } else if (this.currentMode === 'snip') {
                 this.actions.handleImagePrompt(finalImage, rect, 'snip', model);
             }
-            
+
             this.currentMode = 'ask'; // 重置模式
             this.visible = true; // Ensure logic knows window is visible
         }
 
         handleGeneratedImageResult(request) {
             if (request.base64 && this.ui) {
-                 // Delegate to the bridge in UI Manager to process image (remove watermark)
-                 // This reuses the logic loaded in the sandbox iframe
-                 this.ui.processImage(request.base64).then(cleaned => {
-                     // Pass cleaned image to UI
-                     this.ui.handleGeneratedImageResult({ ...request, base64: cleaned });
-                 }).catch(e => {
-                     // Fallback to original on error
-                     this.ui.handleGeneratedImageResult(request);
-                 });
-                 return;
+                // Delegate to the bridge in UI Manager to process image (remove watermark)
+                // This reuses the logic loaded in the sandbox iframe
+                this.ui.processImage(request.base64).then(cleaned => {
+                    // Pass cleaned image to UI
+                    this.ui.handleGeneratedImageResult({ ...request, base64: cleaned });
+                }).catch(e => {
+                    // Fallback to original on error
+                    this.ui.handleGeneratedImageResult(request);
+                });
+                return;
             }
             this.ui.handleGeneratedImageResult(request);
         }
@@ -161,7 +173,7 @@
         handleClick(e) {
             // If clicking inside our toolbar/window, do nothing
             if (this.ui.isHost(e.target)) return;
-            
+
             // If pinned OR docked, do not hide the window on outside click
             if (this.ui.isPinned || this.ui.isDocked) {
                 // Only hide the small selection toolbar if clicking outside
@@ -176,7 +188,7 @@
 
         handleSelection(data) {
             if (!this.isSelectionEnabled) return;
-            
+
             const { text, rect, mousePoint } = data;
             this.currentSelection = text;
             this.lastRect = rect;
@@ -209,7 +221,21 @@
         }
 
         handleAction(actionType, data) {
+            // Auto-detect Gem ID if on a Gem page, OR use stored ID
+            const gemId = this.parseGemIdFromUrl() || this.storedGemId;
+            if (gemId) {
+                if (!data) data = {};
+                if (typeof data === 'object') {
+                    data.gemId = gemId;
+                }
+            }
             this.dispatcher.dispatch(actionType, data);
+        }
+
+        parseGemIdFromUrl() {
+            // URL pattern: https://gemini.google.com/gem/GEM_ID
+            const match = window.location.pathname.match(/\/gem\/([a-zA-Z0-9]+)/);
+            return match ? match[1] : null;
         }
 
         // --- Helper Methods ---
@@ -246,20 +272,21 @@
                 width: width, height: height
             };
 
-            this.ui.hide(); 
+            this.ui.hide();
             const isZh = navigator.language.startsWith('zh');
-            
+
             // 如果带网页上下文，修改标题
             let title = isZh ? "询问" : "Ask Gemini";
             if (withPageContext) {
                 title = isZh ? "与当前网页对话" : "Chat with Page";
             }
 
-            this.ui.showAskWindow(rect, null, title);
+            const gemId = this.parseGemIdFromUrl() || this.storedGemId;
+            this.ui.showAskWindow(rect, null, title, null, gemId);
 
             this.ui.setInputValue("");
-            this.currentSelection = ""; 
-            this.lastSessionId = null; 
+            this.currentSelection = "";
+            this.lastSessionId = null;
             this.visible = true;
 
             // 如果指定了网页上下文模式，在后续发送时包含上下文

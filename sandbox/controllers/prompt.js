@@ -27,7 +27,8 @@ export class PromptController {
         await this.executePrompt(text, files, {
             includePageContext: this.app.pageContextActive,
             enableBrowserControl: this.app.browserControlActive,
-            mcpIds: this.app.mcp.getSelectedMcpIds()
+            mcpIds: this.app.mcp.getSelectedMcpIds(),
+            gemId: this.app.ui.settings.gemId
         });
     }
 
@@ -93,6 +94,7 @@ export class PromptController {
             includePageContext: includePageContext,
             enableBrowserControl: enableBrowserControl,
             mcpIds: mcpIds, // MCP servers to activate
+            gemId: options.gemId || null, // Pass Gem ID
             sessionId: currentId
         };
 

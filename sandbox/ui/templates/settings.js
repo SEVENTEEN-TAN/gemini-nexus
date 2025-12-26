@@ -62,6 +62,18 @@ export const SettingsTemplate = `
 
                 <div class="setting-group">
                     <h4 style="display:flex; align-items:center; gap:6px;">
+                        <span>Google Gems (Beta)</span>
+                        <span class="badge" style="background:#2196F3; color:#fff; font-size:10px; padding:2px 6px; border-radius:4px;">NEW</span>
+                    </h4>
+                    <p class="setting-desc" style="margin-bottom: 8px;">Enter partial ID (e.g., BC00...) to use a custom Gem.</p>
+                    
+                    <div class="shortcut-row" style="margin-bottom: 0;">
+                        <input type="text" id="gem-id-input" class="shortcut-input" style="width: 100%; text-align: left; font-family: monospace;" placeholder="Gem ID (Optional)">
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h4 style="display:flex; align-items:center; gap:6px;">
                         <span>Model Context Protocol (MCP)</span>
                         <span class="badge" style="background:#4caf50; color:#fff; font-size:10px; padding:2px 6px; border-radius:4px;">BETA</span>
                     </h4>

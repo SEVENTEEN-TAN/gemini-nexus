@@ -28,7 +28,9 @@ chrome.storage.local.get([
     'geminiSidebarBehavior', // New preference
     'geminiTextSelectionEnabled',
     'geminiImageToolsEnabled',
-    'geminiAccountIndices' // New preference
+    'geminiImageToolsEnabled',
+    'geminiAccountIndices', // New preference
+    'gemini_gem_id'
 ], (result) => {
     preFetchedData = result;
     trySendInitData();
@@ -88,6 +90,12 @@ function trySendInitData() {
         win.postMessage({
             action: 'RESTORE_ACCOUNT_INDICES',
             payload: preFetchedData.geminiAccountIndices || "0"
+        }, '*');
+
+        // Push Gem ID
+        win.postMessage({
+            action: 'RESTORE_GEM_ID',
+            payload: preFetchedData.gemini_gem_id || ""
         }, '*');
 
         // Handle Pending Session Switch
@@ -270,6 +278,18 @@ window.addEventListener('message', (event) => {
         });
     }
 
+    if (action === 'GET_GEM_ID') {
+        chrome.storage.local.get(['gemini_gem_id'], (res) => {
+            const val = res.gemini_gem_id || "";
+            if (iframe.contentWindow) {
+                iframe.contentWindow.postMessage({
+                    action: 'RESTORE_GEM_ID',
+                    payload: val
+                }, '*');
+            }
+        });
+    }
+
     // --- Sync Storage Updates back to Local Cache (For Speed next time) ---
 
     if (action === 'SAVE_SESSIONS') {
@@ -307,6 +327,10 @@ window.addEventListener('message', (event) => {
     if (action === 'SAVE_ACCOUNT_INDICES') {
         chrome.storage.local.set({ geminiAccountIndices: payload });
         if (preFetchedData) preFetchedData.geminiAccountIndices = payload;
+    }
+    if (action === 'SAVE_GEM_ID') {
+        chrome.storage.local.set({ gemini_gem_id: payload });
+        if (preFetchedData) preFetchedData.gemini_gem_id = payload;
     }
 
     if (action === 'DOWNLOAD_SVG') {

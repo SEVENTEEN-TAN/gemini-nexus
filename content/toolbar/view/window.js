@@ -1,6 +1,6 @@
 
 // content/toolbar/view/window.js
-(function() {
+(function () {
     const Utils = window.GeminiViewUtils;
     const ICONS = window.GeminiToolbarIcons;
 
@@ -22,14 +22,14 @@
             return this.isPinned;
         }
 
-        async show(rect, contextText, title, resetDrag = null, mousePoint = null) {
+        async show(rect, contextText, title, resetDrag = null, mousePoint = null, gemId = null) {
             if (!this.elements.askWindow) return;
 
             // Load and apply saved dimensions
             const stored = await chrome.storage.local.get('gemini_nexus_window_size');
             if (stored.gemini_nexus_window_size) {
                 let { w, h } = stored.gemini_nexus_window_size;
-                const maxW = window.innerWidth * 0.95; 
+                const maxW = window.innerWidth * 0.95;
                 const maxH = window.innerHeight * 0.95;
                 if (w > maxW) w = maxW;
                 if (h > maxH) h = maxH;
@@ -38,27 +38,31 @@
             }
 
             if (resetDrag) {
-                 resetDrag();
-                 this.undockWindow();
+                resetDrag();
+                this.undockWindow();
             }
 
             if (!this.isPinned || !this.elements.askWindow.classList.contains('visible')) {
-                 if (resetDrag) resetDrag();
-                 Utils.positionElement(this.elements.askWindow, rect, true, this.isPinned, mousePoint);
+                if (resetDrag) resetDrag();
+                Utils.positionElement(this.elements.askWindow, rect, true, this.isPinned, mousePoint);
             }
-            
+
             // Reset Content
-            this.elements.windowTitle.textContent = title || DEFAULT_TITLE;
+            let displayTitle = title || DEFAULT_TITLE;
+            if (gemId) {
+                displayTitle += ` 💎`;
+            }
+            this.elements.windowTitle.textContent = displayTitle;
             if (contextText) {
                 this.elements.contextPreview.textContent = contextText;
                 this.elements.contextPreview.classList.remove('hidden');
             } else {
                 this.elements.contextPreview.classList.add('hidden');
             }
-            
+
             this.elements.askInput.value = '';
             this.elements.resultText.innerHTML = '';
-            
+
             // Hide Footer initially
             if (this.elements.windowFooter) this.elements.windowFooter.classList.add('hidden');
 
@@ -72,13 +76,13 @@
 
         showLoading(msg) {
             if (!this.elements.askWindow) return;
-            
+
             if (msg) {
                 this.elements.resultText.innerHTML = `<div style="color: #888; font-style: italic; margin-top: 10px;">${msg}</div>`;
             } else {
                 this.elements.resultText.innerHTML = '';
             }
-            
+
             // Show Footer with Stop button
             if (this.elements.windowFooter) this.elements.windowFooter.classList.remove('hidden');
             if (this.elements.footerStop) this.elements.footerStop.classList.remove('hidden');
@@ -87,9 +91,9 @@
 
         showResult(htmlContent, title, isStreaming = false) {
             if (!this.elements.askWindow) return;
-            
+
             if (title) this.elements.windowTitle.textContent = title;
-            
+
             const resultArea = this.elements.resultArea;
             let shouldScrollBottom = false;
             if (resultArea) {
@@ -97,7 +101,7 @@
                 const distanceToBottom = resultArea.scrollHeight - resultArea.scrollTop - resultArea.clientHeight;
                 shouldScrollBottom = distanceToBottom <= threshold;
             }
-            
+
             // Content is now always HTML rendered via Bridge (using marked/katex/highlight.js)
             this.elements.resultText.innerHTML = htmlContent;
 
@@ -118,7 +122,7 @@
 
         updateStreamingState(isStreaming) {
             if (!this.elements.askWindow) return;
-            
+
             if (isStreaming) {
                 if (this.elements.footerStop) this.elements.footerStop.classList.remove('hidden');
                 if (this.elements.footerActions) this.elements.footerActions.classList.add('hidden');
@@ -131,11 +135,11 @@
         }
 
         showError(text) {
-             if (!this.elements.askWindow) return;
-             if (this.elements.windowFooter) this.elements.windowFooter.classList.add('hidden');
-             this.elements.resultText.innerHTML = `<p style="color:#d93025; font-weight:500;">Error: ${text}</p>`;
+            if (!this.elements.askWindow) return;
+            if (this.elements.windowFooter) this.elements.windowFooter.classList.add('hidden');
+            this.elements.resultText.innerHTML = `<p style="color:#d93025; font-weight:500;">Error: ${text}</p>`;
         }
-        
+
         toggleCopyIcon(success) {
             if (!this.elements.buttons.copy) return;
             this.elements.buttons.copy.innerHTML = success ? ICONS.CHECK : ICONS.COPY;

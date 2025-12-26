@@ -23,7 +23,7 @@ const MODEL_CONFIGS = {
     }
 };
 
-export async function sendGeminiMessage(prompt, context, model, files, signal, onUpdate) {
+export async function sendGeminiMessage(prompt, context, model, files, signal, onUpdate, gemId = null) {
     // 1. Ensure Auth
     if (!context || !context.atValue) {
         // Fallback: If no context, use '0' (this path usually handled by SessionManager)
@@ -61,6 +61,8 @@ export async function sendGeminiMessage(prompt, context, model, files, signal, o
     // If no files: [prompt]
 
     let messageStruct;
+
+    // Standard Config
     if (fileList.length > 0) {
         messageStruct = [
             prompt,
@@ -88,8 +90,25 @@ export async function sendGeminiMessage(prompt, context, model, files, signal, o
 
     const data = [
         messageStruct,
-        ['en'], // Language hint (Index 1) - Defaulting to en, but could be dynamic
-        context.contextIds // [conversationId, responseId, choiceId]
+        ['en'], // Language hint (Index 1)
+        context.contextIds, // [conversationId, responseId, choiceId] (Index 2)
+        null, // 3
+        null, // 4
+        null, // 5
+        null, // 6
+        null, // 7
+        null, // 8
+        null, // 9
+        null, // 10
+        null, // 11
+        null, // 12
+        null, // 13
+        null, // 14
+        null, // 15
+        null, // 16
+        null, // 17
+        null, // 18
+        gemId // 19: Gem ID injected here
     ];
 
     // The API expects: f.req = JSON.stringify([null, JSON.stringify(data)])
@@ -108,10 +127,14 @@ export async function sendGeminiMessage(prompt, context, model, files, signal, o
         'X-Same-Domain': '1',
         'X-Goog-AuthUser': context.authUser,
         // Critical: Use this header for model selection instead of Payload ID
-        // Critical: Use this header for model selection instead of Payload ID
         'x-goog-ext-525001261-jspb': modelConfig.header,
         ...(modelConfig.extraHeaders || {})
     };
+
+    // Gems Header Injection
+    if (gemId) {
+        headers['x-goog-ext-525005358-jspb'] = `["${gemId}",1]`;
+    }
 
     // 5. Send Request
     // IMPORTANT: Include /u/{index}/ in URL to ensure cookies match the requested authUser

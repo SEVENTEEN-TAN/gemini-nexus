@@ -69,7 +69,8 @@ export class GeminiSessionManager {
                         request.model,
                         files,
                         signal,
-                        onUpdate
+                        onUpdate,
+                        request.gemId // Pass Gem ID
                     );
 
                     // --- MCP EXECUTION LOOP (Simple 1-turn) ---
@@ -96,7 +97,8 @@ export class GeminiSessionManager {
                                 request.model,
                                 [],
                                 signal,
-                                onUpdate
+                                onUpdate,
+                                request.gemId // Pass Gem ID
                             );
 
                         } catch (e) {

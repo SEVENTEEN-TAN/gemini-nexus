@@ -1,5 +1,5 @@
 
-(function() {
+(function () {
     // Dependencies
     const DOMBuilder = window.GeminiToolbarDOM;
     const View = window.GeminiToolbarView;
@@ -9,7 +9,7 @@
     const Renderer = window.GeminiUIRenderer;
     const ActionsDelegate = window.GeminiToolbarUIActions;
     const CodeCopyHandler = window.GeminiCodeCopyHandler;
-    
+
     // Localization helper
     const isZh = navigator.language.startsWith('zh');
     const DEFAULT_TITLE = isZh ? "询问" : "Ask";
@@ -28,7 +28,7 @@
             this.domBuilder = new DOMBuilder();
             this.callbacks = {};
             this.isBuilt = false;
-            
+
             // Sub-Managers
             this.grammarManager = null;
             this.bridge = null; // Renderer Bridge
@@ -43,22 +43,22 @@
 
         build() {
             if (this.isBuilt) return;
-            
+
             // Delegate DOM creation
             const { host, shadow } = this.domBuilder.create();
             this.host = host;
             this.shadow = shadow;
-            
+
             // Initialize Sub-components
             this.view = new View(this.shadow);
             this.grammarManager = new GrammarManager(this.view);
-            
+
             // Initialize Renderer Bridge (for background markdown rendering & image processing)
             this.bridge = new window.GeminiRendererBridge(this.host);
 
             // Initialize Renderer Logic
             this.renderer = new Renderer(this.view, this.bridge);
-            
+
             // Init Actions Delegate
             this.actionsDelegate = new ActionsDelegate(this);
 
@@ -67,7 +67,7 @@
 
             // Init Drag Controller with Docking Logic
             this.dragController = new DragController(
-                this.view.elements.askWindow, 
+                this.view.elements.askWindow,
                 this.view.elements.askHeader,
                 {
                     onSnap: (side, top) => this.view.dockWindow(side, top),
@@ -85,19 +85,19 @@
             );
 
             this.events = new Events(this);
-            
+
             // Bind Events
             this.events.bind(this.view.elements, this.view.elements.askWindow);
-            
+
             this.isBuilt = true;
         }
 
         // --- Delegate Accessors ---
-        
+
         get actions() {
             return this.actionsDelegate;
         }
-        
+
         get codeCopy() {
             return this.codeCopyHandler;
         }
@@ -154,11 +154,12 @@
             this.view.hideImageButton();
         }
 
-        showAskWindow(rect, contextText, title = DEFAULT_TITLE, mousePoint = null) {
-            return this.view.showAskWindow(rect, contextText, title, () => this.dragController.reset(), mousePoint);
-        }
-
-        showLoading(msg) {
+        async showAskWindow(rect, contextText, title, mousePoint = null, gemId = null) {
+            await this.ensureWindowLoaded();
+            if (this.windowView) {
+                this.windowView.show(rect, contextText, title, () => this.resetWindowDrag(), mousePoint, gemId);
+            }
+        } showLoading(msg) {
             this.view.showLoading(msg);
         }
 
@@ -173,7 +174,7 @@
             if (this.renderer) {
                 await this.renderer.show(text, title, isStreaming, images);
             }
-            
+
             // Update Grammar UI state
             if (this.grammarManager) {
                 this.grammarManager.updateResultActions(isStreaming);
@@ -185,7 +186,7 @@
                 this.renderer.handleGeneratedImageResult(request);
             }
         }
-        
+
         async processImage(base64) {
             if (this.bridge) {
                 return this.bridge.processImage(base64);
@@ -194,7 +195,7 @@
         }
 
         showError(text) {
-             this.view.showError(text);
+            this.view.showError(text);
         }
 
         hideAskWindow() {
@@ -251,10 +252,10 @@
         // --- Utils ---
 
         showCopySelectionFeedback(success) {
-             this.view.toggleCopySelectionIcon(success);
-             setTimeout(() => {
-                 this.view.toggleCopySelectionIcon(null); 
-             }, 2000);
+            this.view.toggleCopySelectionIcon(success);
+            setTimeout(() => {
+                this.view.toggleCopySelectionIcon(null);
+            }, 2000);
         }
 
         isVisible() {

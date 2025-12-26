@@ -7,7 +7,7 @@ export class AppMessageBridge {
         this.ui = null;
         this.resizeFn = null;
         this.queue = [];
-        
+
         // Bind immediately
         window.addEventListener('message', this.handleMessage.bind(this));
     }
@@ -28,7 +28,7 @@ export class AppMessageBridge {
 
     handleMessage(event) {
         const { action, payload } = event.data;
-        
+
         if (this.app && this.ui) {
             this.dispatch(action, payload, event);
         } else {
@@ -76,6 +76,11 @@ export class AppMessageBridge {
         }
         if (action === 'RESTORE_ACCOUNT_INDICES') {
             this.ui.settings.updateAccountIndices(payload);
+            return;
+        }
+        if (action === 'RESTORE_GEM_ID') {
+            this.ui.settings.gemId = payload || "";
+            this.ui.settings.view.setGemId(payload || "");
             return;
         }
 

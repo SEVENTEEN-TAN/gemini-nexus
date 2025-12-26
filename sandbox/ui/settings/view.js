@@ -23,6 +23,7 @@ export class SettingsView {
             textSelectionToggle: get('text-selection-toggle'),
             imageToolsToggle: get('image-tools-toggle'),
             accountIndicesInput: get('account-indices-input'),
+            gemIdInput: get('gem-id-input'),
 
             inputQuickAsk: get('shortcut-quick-ask'),
             inputOpenPanel: get('shortcut-open-panel'),
@@ -120,7 +121,8 @@ export class SettingsView {
             },
             textSelection: textSelectionToggle ? textSelectionToggle.checked : true,
             imageTools: imageToolsToggle ? imageToolsToggle.checked : true,
-            accountIndices: accountIndicesInput ? accountIndicesInput.value : "0"
+            accountIndices: accountIndicesInput ? accountIndicesInput.value : "0",
+            gemId: this.elements.gemIdInput ? this.elements.gemIdInput.value.trim() : ""
         };
 
         this.fire('onSave', data);
@@ -196,6 +198,10 @@ export class SettingsView {
 
     setAccountIndices(val) {
         if (this.elements.accountIndicesInput) this.elements.accountIndicesInput.value = val || "0";
+    }
+
+    setGemId(val) {
+        if (this.elements.gemIdInput) this.elements.gemIdInput.value = val || "";
     }
 
     setMcpConfig(jsonStr) {
