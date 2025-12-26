@@ -24,6 +24,9 @@ export class SettingsView {
             imageToolsToggle: get('image-tools-toggle'),
             accountIndicesInput: get('account-indices-input'),
             gemIdInput: get('gem-id-input'),
+            gemSelect: get('gem-select'),
+            btnRefreshGems: get('refresh-gems-btn'),
+            gemsStatus: get('gems-status'),
 
             inputQuickAsk: get('shortcut-quick-ask'),
             inputOpenPanel: get('shortcut-open-panel'),
@@ -45,7 +48,8 @@ export class SettingsView {
     bindEvents() {
         const { modal, btnClose, btnSave, btnReset, themeSelect, languageSelect,
             inputQuickAsk, inputOpenPanel, textSelectionToggle, imageToolsToggle,
-            accountIndicesInput, sidebarRadios, btnDownloadLogs, btnSaveMcp, mcpConfigInput } = this.elements;
+            accountIndicesInput, sidebarRadios, btnDownloadLogs, btnSaveMcp, mcpConfigInput,
+            btnRefreshGems, gemSelect, gemIdInput } = this.elements;
 
         // Modal actions
         if (btnClose) btnClose.addEventListener('click', () => this.close());
@@ -109,6 +113,27 @@ export class SettingsView {
                 this.close();
             }
         });
+
+        // Gem Selection
+        if (btnRefreshGems) {
+            btnRefreshGems.addEventListener('click', () => this.fire('onRefreshGems'));
+        }
+        if (gemSelect) {
+            gemSelect.addEventListener('change', (e) => {
+                // When a Gem is selected from dropdown, update the manual input
+                if (gemIdInput && e.target.value) {
+                    gemIdInput.value = e.target.value;
+                }
+            });
+        }
+        if (gemIdInput) {
+            gemIdInput.addEventListener('input', (e) => {
+                // When manual input changes, clear dropdown selection if it doesn't match
+                if (gemSelect && gemSelect.value !== e.target.value) {
+                    gemSelect.value = e.target.value || '';
+                }
+            });
+        }
     }
 
     handleSave() {
@@ -201,7 +226,49 @@ export class SettingsView {
     }
 
     setGemId(val) {
-        if (this.elements.gemIdInput) this.elements.gemIdInput.value = val || "";
+        const gemId = val || "";
+        if (this.elements.gemIdInput) this.elements.gemIdInput.value = gemId;
+        // Also set the dropdown if it matches
+        if (this.elements.gemSelect && gemId) {
+            this.elements.gemSelect.value = gemId;
+        }
+    }
+
+    populateGemsList(gems) {
+        if (!this.elements.gemSelect) return;
+        
+        const select = this.elements.gemSelect;
+        const currentValue = select.value;
+        
+        // Clear existing options except the first one
+        while (select.options.length > 1) {
+            select.remove(1);
+        }
+        
+        // Add Gem options
+        gems.forEach(gem => {
+            const option = document.createElement('option');
+            option.value = gem.id;
+            option.textContent = `${gem.name} (${gem.id.substring(0, 8)}...)`;
+            select.appendChild(option);
+        });
+        
+        // Restore selection if it still exists
+        if (currentValue && gems.some(g => g.id === currentValue)) {
+            select.value = currentValue;
+        }
+    }
+
+    showGemsStatus(message, isError = false) {
+        if (!this.elements.gemsStatus) return;
+        this.elements.gemsStatus.textContent = message;
+        this.elements.gemsStatus.style.color = isError ? 'var(--error-color, #d32f2f)' : 'var(--text-secondary)';
+    }
+
+    clearGemsStatus() {
+        if (this.elements.gemsStatus) {
+            this.elements.gemsStatus.textContent = '';
+        }
     }
 
     setMcpConfig(jsonStr) {

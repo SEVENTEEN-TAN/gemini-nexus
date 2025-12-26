@@ -2,6 +2,7 @@
 // background/messages.js
 import { SessionMessageHandler } from './handlers/session.js';
 import { UIMessageHandler } from './handlers/ui.js';
+import { getCachedGemsListAPI } from '../services/gems_api.js';
 
 /**
  * Sets up the global runtime message listener.
@@ -63,6 +64,22 @@ export function setupMessageListener(sessionManager, imageHandler, controlManage
         if (request.action === 'MCP_GET_STATUS') {
             const debugInfo = mcpManager.getDebugInfo();
             sendResponse({ servers: debugInfo });
+            return true;
+        }
+
+        // --- GEMS MANAGEMENT ---
+        if (request.action === 'FETCH_GEMS_LIST') {
+            const userIndex = request.userIndex || '0';
+            const forceRefresh = request.forceRefresh || false;
+            console.log(`[Background] FETCH_GEMS_LIST request: userIndex=${userIndex}, forceRefresh=${forceRefresh}`);
+            getCachedGemsListAPI(userIndex, forceRefresh).then(gems => {
+                console.log(`[Background] FETCH_GEMS_LIST response: ${gems.length} gems`);
+                sendResponse({ gems: gems });
+            }).catch(error => {
+                console.error('[Background] Failed to fetch Gems:', error);
+                console.error('[Background] Error stack:', error.stack);
+                sendResponse({ gems: [], error: error.message });
+            });
             return true;
         }
 

@@ -140,6 +140,22 @@ class ToolbarActions {
     }
 
     handleSubmitAsk(question, context, sessionId = null, model = "gemini-2.5-flash", gemId = null) {
+        // If Gem model is selected, ensure we have a Gem ID
+        if (model === 'gem' && !gemId) {
+            // Try to get from storage
+            chrome.storage.local.get(['gemini_gem_id'], (result) => {
+                const storedGemId = result.gemini_gem_id || null;
+                if (!storedGemId) {
+                    console.warn('[ToolbarActions] Gem model selected but no Gem ID configured!');
+                    this.ui.showError(this.t.errors?.noGemId || 'Please configure a Gem ID in settings');
+                    return;
+                }
+                // Retry with stored Gem ID
+                this.handleSubmitAsk(question, context, sessionId, model, storedGemId);
+            });
+            return;
+        }
+
         this.ui.showLoading();
 
         let prompt = question;

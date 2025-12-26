@@ -20,6 +20,10 @@ const MODEL_CONFIGS = {
             'x-goog-ext-525005358-jspb': '["FE27D76F-C4BB-4ACC-AF79-E6DE3BA30712",1]',
             'x-goog-ext-73010989-jspb': '[0]'
         }
+    },
+    // Gem: Use configured Gem (defaults to Flash if no Gem ID)
+    'gem': {
+        header: '[1,null,null,null,"9ec249fc9ad08861",null,null,0,[4]]'
     }
 };
 
@@ -34,6 +38,15 @@ export async function sendGeminiMessage(prompt, context, model, files, signal, o
             authUser: params.authUserIndex || '0',
             contextIds: ['', '', '']
         };
+    }
+
+    // Handle 'gem' model: Use gemId if provided, otherwise warn
+    if (model === 'gem') {
+        if (!gemId) {
+            console.warn('[GeminiAPI] Gem model selected but no Gem ID provided. Using default Flash model.');
+            // Fallback to Flash model if no Gem ID
+            model = 'gemini-2.5-flash';
+        }
     }
 
     const modelConfig = MODEL_CONFIGS[model] || MODEL_CONFIGS['gemini-2.5-flash'];
@@ -132,7 +145,9 @@ export async function sendGeminiMessage(prompt, context, model, files, signal, o
     };
 
     // Gems Header Injection
-    if (gemId) {
+    // For 'gem' model, gemId is required and will be set in the header
+    // For other models, gemId is optional (can override to use a specific Gem)
+    if (gemId || model === 'gem') {
         headers['x-goog-ext-525005358-jspb'] = `["${gemId}",1]`;
     }
 

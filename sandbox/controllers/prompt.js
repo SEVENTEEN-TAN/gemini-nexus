@@ -74,6 +74,16 @@ export class PromptController {
 
         // Prepare Context & Model
         const selectedModel = options.forceModel || this.app.getSelectedModel();
+        
+        // If Gem model is selected, ensure we have a Gem ID
+        let effectiveGemId = options.gemId || null;
+        if (selectedModel === 'gem') {
+            effectiveGemId = effectiveGemId || this.app.ui.settings.gemId;
+            if (!effectiveGemId) {
+                console.warn('[PromptController] Gem model selected but no Gem ID configured!');
+                // You might want to show a UI notification here
+            }
+        }
 
         if (session.context) {
             sendToBackground({
@@ -94,7 +104,7 @@ export class PromptController {
             includePageContext: includePageContext,
             enableBrowserControl: enableBrowserControl,
             mcpIds: mcpIds, // MCP servers to activate
-            gemId: options.gemId || null, // Pass Gem ID
+            gemId: effectiveGemId, // Pass Gem ID (required for 'gem' model)
             sessionId: currentId
         };
 

@@ -61,6 +61,7 @@
                         <option value="gemini-2.5-flash">Fast</option>
                         <option value="gemini-2.5-pro">Thinking</option>
                         <option value="gemini-3.0-pro">3 Pro</option>
+                        <option value="gem">Gem</option>
                     </select>
                     <button class="icon-btn" id="btn-header-close" title="${t.close}">${ICONS.CLOSE}</button>
                 </div>
