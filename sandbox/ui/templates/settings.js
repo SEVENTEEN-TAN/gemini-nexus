@@ -27,14 +27,6 @@ export const SettingsTemplate = `
                         <input type="checkbox" id="image-tools-toggle" style="width: 20px; height: 20px; cursor: pointer;">
                     </div>
 
-                    <div class="shortcut-row" style="margin-bottom: 12px; align-items: flex-start;">
-                        <div style="flex: 1; margin-right: 12px;">
-                            <label data-i18n="accountIndices" style="font-weight: 500; display: block; margin-bottom: 2px;">Account Indices</label>
-                            <span class="setting-desc" data-i18n="accountIndicesDesc">Comma-separated user indices (e.g., 0, 1, 2) for polling.</span>
-                        </div>
-                        <input type="text" id="account-indices-input" class="shortcut-input" style="width: 100px; text-align: left;" placeholder="0">
-                    </div>
-
                     <div style="margin-top: 16px;">
                         <h5 data-i18n="sidebarBehavior" style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: var(--text-primary);">When Sidebar Reopens</h5>
                         

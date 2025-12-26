@@ -6,6 +6,7 @@
 - [auth.js](file://services/auth.js)
 - [upload.js](file://services/upload.js)
 - [parser.js](file://services/parser.js)
+- [models_api.js](file://services/models_api.js)
 - [auth_manager.js](file://background/managers/auth_manager.js)
 - [session_manager.js](file://background/managers/session_manager.js)
 - [history_manager.js](file://background/managers/history_manager.js)
@@ -14,6 +15,13 @@
 - [utils.js](file://lib/utils.js)
 </cite>
 
+## 更新摘要
+**变更内容**
+- 新增动态模型配置管理功能，支持运行时更新和获取模型配置
+- 更新`sendGeminiMessage`函数以支持从动态配置中解析模型配置
+- 新增`updateModelConfigs`和`getAllModelConfigs`函数
+- 重构模型配置管理机制，支持默认配置与动态配置的合并
+
 ## 目录
 1. [简介](#简介)
 2. [核心功能](#核心功能)
@@ -21,10 +29,11 @@
 4. [多模态输入处理](#多模态输入处理)
 5. [流式响应解析](#流式响应解析)
 6. [请求参数与模型配置](#请求参数与模型配置)
-7. [错误处理与重试策略](#错误处理与重试策略)
-8. [会话上下文与历史管理](#会话上下文与历史管理)
-9. [性能优化与成本控制](#性能优化与成本控制)
-10. [最佳实践与示例](#最佳实践与示例)
+7. [动态模型配置管理](#动态模型配置管理)
+8. [错误处理与重试策略](#错误处理与重试策略)
+9. [会话上下文与历史管理](#会话上下文与历史管理)
+10. [性能优化与成本控制](#性能优化与成本控制)
+11. [最佳实践与示例](#最佳实践与示例)
 
 ## 简介
 Gemini服务API是Gemini Nexus扩展的核心，它封装了与Google Gemini API的交互逻辑。该API提供了一个异步函数`sendGeminiMessage`，用于向Gemini发送文本和图像输入，并以流式方式接收响应。API处理了从认证、文件上传、请求构造到响应解析的完整流程，为上层应用提供了简洁的接口。它支持多种Gemini模型，并实现了会话上下文维护、错误重试和多账户轮换等高级功能。
@@ -120,6 +129,95 @@ API支持多种Gemini模型，每种模型都有其特定的配置。模型配�
 
 **Section sources**
 - [gemini_api.js](file://services/gemini_api.js#L7-L24)
+
+## 动态模型配置管理
+Gemini服务API现在支持动态模型配置管理，允许在运行时更新和获取模型配置。这一功能通过三个核心组件实现：默认模型配置、动态模型配置和配置解析机制。
+
+### 模型配置架构
+系统采用分层配置架构，包含两个主要配置源：
+1. **默认模型配置** (`DEFAULT_MODEL_CONFIGS`): 静态定义的默认模型配置，作为后备方案
+2. **动态模型配置** (`dynamicModelConfigs`): 运行时从API获取的模型配置，优先级更高
+
+```mermaid
+graph TD
+A[模型配置请求] --> B{动态配置存在?}
+B --> |是| C[返回动态配置]
+B --> |否| D[返回默认配置]
+C --> E[sendGeminiMessage]
+D --> E
+```
+
+### 核心函数
+#### `updateModelConfigs(models)`
+此函数用于更新动态模型配置。它接收一个模型对象数组，每个对象包含`id`、`header`和可选的`extraHeaders`。函数会清空现有动态配置，并用新配置填充。
+
+```javascript
+export function updateModelConfigs(models) {
+    if (!models || models.length === 0) {
+        console.warn('[GeminiAPI] No models provided for config update');
+        return;
+    }
+    
+    dynamicModelConfigs = {};
+    
+    for (const model of models) {
+        if (model.id && model.header) {
+            dynamicModelConfigs[model.id] = {
+                header: model.header,
+                extraHeaders: model.extraHeaders || null
+            };
+        }
+    }
+    
+    console.log(`[GeminiAPI] Updated model configs for ${Object.keys(dynamicModelConfigs).length} models`);
+}
+```
+
+#### `getAllModelConfigs()`
+此函数返回所有可用的模型配置，包括默认配置和动态配置的合并结果。返回的对象可用于UI显示所有可用模型。
+
+```javascript
+export function getAllModelConfigs() {
+    return { ...DEFAULT_MODEL_CONFIGS, ...dynamicModelConfigs };
+}
+```
+
+#### `getModelConfig(modelId)`
+此函数是模型配置解析的核心，按照优先级顺序查找模型配置：
+1. 首先在动态配置中查找
+2. 如果未找到，则在默认配置中查找
+3. 如果仍为找到，则返回`gemini-2.5-flash`作为后备模型
+
+```javascript
+function getModelConfig(modelId) {
+    // Try dynamic configs first
+    if (dynamicModelConfigs && dynamicModelConfigs[modelId]) {
+        return dynamicModelConfigs[modelId];
+    }
+    
+    // Fallback to default configs
+    return DEFAULT_MODEL_CONFIGS[modelId] || DEFAULT_MODEL_CONFIGS['gemini-2.5-flash'];
+}
+```
+
+### 配置更新流程
+动态模型配置通常通过`models_api.js`中的`fetchModelsListAPI`函数从服务器获取，然后调用`updateModelConfigs`进行更新。系统支持缓存机制，避免频繁请求。
+
+```mermaid
+sequenceDiagram
+participant UI as "用户界面"
+participant API as "Gemini API"
+participant Config as "模型配置管理"
+UI->>API : 请求模型列表
+API-->>Config : 返回模型数据
+Config->>Config : 调用updateModelConfigs
+Config->>Config : 更新dynamicModelConfigs
+Config-->>UI : 通知配置更新
+```
+
+**Section sources**
+- [gemini_api.js](file://services/gemini_api.js#L32-L79)
+- [models_api.js](file://services/models_api.js#L12-L221)
 
 ## 错误处理与重试策略
 API实现了全面的错误处理机制。在流式读取过程中，如果遇到`AbortError`，错误会被重新抛出以支持请求取消。对于网络错误，系统会根据响应状态码或响应内容抛出相应的错误。

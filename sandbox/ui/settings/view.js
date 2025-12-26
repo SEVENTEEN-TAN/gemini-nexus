@@ -22,7 +22,6 @@ export class SettingsView {
 
             textSelectionToggle: get('text-selection-toggle'),
             imageToolsToggle: get('image-tools-toggle'),
-            accountIndicesInput: get('account-indices-input'),
 
             inputQuickAsk: get('shortcut-quick-ask'),
             inputOpenPanel: get('shortcut-open-panel'),
@@ -44,7 +43,7 @@ export class SettingsView {
     bindEvents() {
         const { modal, btnClose, btnSave, btnReset, themeSelect, languageSelect,
             inputQuickAsk, inputOpenPanel, textSelectionToggle, imageToolsToggle,
-            accountIndicesInput, sidebarRadios, btnDownloadLogs, btnSaveMcp, mcpConfigInput } = this.elements;
+            sidebarRadios, btnDownloadLogs, btnSaveMcp, mcpConfigInput } = this.elements;
 
         // Modal actions
         if (btnClose) btnClose.addEventListener('click', () => this.close());
@@ -111,7 +110,7 @@ export class SettingsView {
     }
 
     handleSave() {
-        const { inputQuickAsk, inputOpenPanel, textSelectionToggle, imageToolsToggle, accountIndicesInput } = this.elements;
+        const { inputQuickAsk, inputOpenPanel, textSelectionToggle, imageToolsToggle } = this.elements;
 
         const data = {
             shortcuts: {
@@ -119,8 +118,7 @@ export class SettingsView {
                 openPanel: inputOpenPanel ? inputOpenPanel.value : null,
             },
             textSelection: textSelectionToggle ? textSelectionToggle.checked : true,
-            imageTools: imageToolsToggle ? imageToolsToggle.checked : true,
-            accountIndices: accountIndicesInput ? accountIndicesInput.value : "0"
+            imageTools: imageToolsToggle ? imageToolsToggle.checked : true
         };
 
         this.fire('onSave', data);
@@ -192,10 +190,6 @@ export class SettingsView {
                 radio.checked = (radio.value === val);
             });
         }
-    }
-
-    setAccountIndices(val) {
-        if (this.elements.accountIndicesInput) this.elements.accountIndicesInput.value = val || "0";
     }
 
     setMcpConfig(jsonStr) {

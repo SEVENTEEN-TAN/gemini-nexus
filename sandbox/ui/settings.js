@@ -1,6 +1,6 @@
 
 // sandbox/ui/settings.js
-import { saveShortcutsToStorage, saveThemeToStorage, requestThemeFromStorage, saveLanguageToStorage, requestLanguageFromStorage, saveTextSelectionToStorage, requestTextSelectionFromStorage, saveSidebarBehaviorToStorage, saveImageToolsToStorage, requestImageToolsFromStorage, saveAccountIndicesToStorage, requestAccountIndicesFromStorage, sendToBackground } from '../../lib/messaging.js';
+import { saveShortcutsToStorage, saveThemeToStorage, requestThemeFromStorage, saveLanguageToStorage, requestLanguageFromStorage, saveTextSelectionToStorage, requestTextSelectionFromStorage, saveSidebarBehaviorToStorage, saveImageToolsToStorage, requestImageToolsFromStorage, sendToBackground } from '../../lib/messaging.js';
 import { setLanguagePreference, getLanguagePreference } from '../core/i18n.js';
 import { SettingsView } from './settings/view.js';
 import { DEFAULT_SHORTCUTS } from '../../lib/constants.js';
@@ -15,7 +15,6 @@ export class SettingsController {
 
         this.textSelectionEnabled = true;
         this.imageToolsEnabled = true;
-        this.accountIndices = "0";
 
         // Initialize View
         this.view = new SettingsView({
@@ -91,12 +90,10 @@ export class SettingsController {
         this.view.setShortcuts(this.shortcuts);
         this.view.setLanguageValue(getLanguagePreference());
         this.view.setToggles(this.textSelectionEnabled, this.imageToolsEnabled);
-        this.view.setAccountIndices(this.accountIndices);
 
         // Refresh from storage
         requestTextSelectionFromStorage();
         requestImageToolsFromStorage();
-        requestAccountIndicesFromStorage();
 
         // Fetch MCP Config
         this.fetchMcpConfig();
@@ -115,18 +112,10 @@ export class SettingsController {
 
         this.imageToolsEnabled = data.imageTools;
         saveImageToolsToStorage(this.imageToolsEnabled);
-
-        // Accounts
-        let val = data.accountIndices.trim();
-        if (!val) val = "0";
-        this.accountIndices = val;
-        const cleaned = val.replace(/[^0-9,]/g, '');
-        saveAccountIndicesToStorage(cleaned);
     }
 
     resetSettings() {
         this.view.setShortcuts(this.defaultShortcuts);
-        this.view.setAccountIndices("0");
     }
 
     downloadLogs() {
@@ -197,11 +186,6 @@ export class SettingsController {
 
     updateSidebarBehavior(behavior) {
         this.view.setSidebarBehavior(behavior);
-    }
-
-    updateAccountIndices(indicesString) {
-        this.accountIndices = indicesString || "0";
-        this.view.setAccountIndices(this.accountIndices);
     }
 
     async fetchGithubStars() {

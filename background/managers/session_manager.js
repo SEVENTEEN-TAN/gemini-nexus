@@ -40,111 +40,88 @@ export class GeminiSessionManager {
                 }];
             }
 
-            let attemptCount = 0;
-            // Retry once with rotation if multiple accounts configured
-            const maxAttempts = this.auth.accountIndices.length > 1 ? 2 : 1;
+            try {
+                this.auth.checkModelChange(request.model);
+                const context = await this.auth.getOrFetchContext();
 
-            while (attemptCount < maxAttempts) {
-                attemptCount++;
-
-                try {
-                    this.auth.checkModelChange(request.model);
-                    const context = await this.auth.getOrFetchContext();
-
-                    // --- MCP INJECTION ---
-                    let finalText = request.text;
-                    let mcpPrompt = null;
-                    if (this.mcpManager && request.mcpIds && request.mcpIds.length > 0) {
-                        // Use selected MCP servers only
-                        mcpPrompt = this.mcpManager.getSystemPromptForServers(request.mcpIds);
-                        if (mcpPrompt) {
-                            finalText = `${mcpPrompt}\n\nUser Query: ${request.text}`;
-                        }
+                // --- MCP INJECTION ---
+                let finalText = request.text;
+                let mcpPrompt = null;
+                if (this.mcpManager && request.mcpIds && request.mcpIds.length > 0) {
+                    // Use selected MCP servers only
+                    mcpPrompt = this.mcpManager.getSystemPromptForServers(request.mcpIds);
+                    if (mcpPrompt) {
+                        finalText = `${mcpPrompt}\n\nUser Query: ${request.text}`;
                     }
-                    // ---------------------
-
-                    let response = await sendGeminiMessage(
-                        finalText,
-                        context,
-                        request.model,
-                        files,
-                        signal,
-                        onUpdate,
-                        request.gemId // Pass Gem ID
-                    );
-
-                    // --- MCP EXECUTION LOOP (Simple 1-turn) ---
-                    // Check if response contains tool call
-                    const toolCall = this.parseToolCall(response.text);
-                    if (toolCall && this.mcpManager) {
-                        try {
-                            if (onUpdate) onUpdate({
-                                action: "GEMINI_STREAM",
-                                text: response.text + `\n\n> ⚙️ Executing tool: ${toolCall.tool}...`
-                            });
-
-                            const result = await this.mcpManager.executeTool(toolCall.tool, toolCall.args);
-                            const resultText = `Tool Result (${toolCall.tool}):\n${JSON.stringify(result, null, 2)}`;
-
-                            // Feed back to Gemini
-                            // We need to update context from the first response first
-                            await this.auth.updateContext(response.newContext, request.model);
-                            const nextContext = await this.auth.getOrFetchContext(); // Should be the updated one
-
-                            response = await sendGeminiMessage(
-                                resultText,
-                                nextContext,
-                                request.model,
-                                [],
-                                signal,
-                                onUpdate,
-                                request.gemId // Pass Gem ID
-                            );
-
-                        } catch (e) {
-                            console.error("MCP Execution Error", e);
-                            if (onUpdate) onUpdate({
-                                action: "GEMINI_STREAM",
-                                text: response.text + `\n\n> ❌ Tool Error: ${e.message}`
-                            });
-                            // Continue with original response if tool fails? Or let the error stand?
-                            // Let's just append the error to the response text so the user sees it.
-                            response.text += `\n\n> ❌ Tool execution failed: ${e.message}`;
-                        }
-                    }
-                    // ------------------------------------------
-
-                    // Success!
-                    await this.auth.updateContext(response.newContext, request.model);
-
-                    return {
-                        action: "GEMINI_REPLY",
-                        text: response.text,
-                        thoughts: response.thoughts,
-                        images: response.images,
-                        title: response.title, // Include auto-generated title
-                        status: "success",
-                        context: response.newContext
-                    };
-
-                } catch (err) {
-                    const isLoginError = err.message && (
-                        err.message.includes("未登录") ||
-                        err.message.includes("Not logged in") ||
-                        err.message.includes("Sign in") ||
-                        err.message.includes("401") ||
-                        err.message.includes("403")
-                    );
-
-                    if (isLoginError && attemptCount < maxAttempts) {
-                        console.warn("[Gemini Nexus] Auth error, rotating account and retrying...");
-                        await this.auth.rotateAccount();
-                        this.auth.forceContextRefresh();
-                        continue; // Retry loop
-                    }
-
-                    throw err; // Throw to outer catch
                 }
+                // ---------------------
+
+                let response = await sendGeminiMessage(
+                    finalText,
+                    context,
+                    request.model,
+                    files,
+                    signal,
+                    onUpdate,
+                    request.gemId // Pass Gem ID
+                );
+
+                // --- MCP EXECUTION LOOP (Simple 1-turn) ---
+                // Check if response contains tool call
+                const toolCall = this.parseToolCall(response.text);
+                if (toolCall && this.mcpManager) {
+                    try {
+                        if (onUpdate) onUpdate({
+                            action: "GEMINI_STREAM",
+                            text: response.text + `\n\n> ⚙️ Executing tool: ${toolCall.tool}...`
+                        });
+
+                        const result = await this.mcpManager.executeTool(toolCall.tool, toolCall.args);
+                        const resultText = `Tool Result (${toolCall.tool}):\n${JSON.stringify(result, null, 2)}`;
+
+                        // Feed back to Gemini
+                        // We need to update context from the first response first
+                        await this.auth.updateContext(response.newContext, request.model);
+                        const nextContext = await this.auth.getOrFetchContext(); // Should be the updated one
+
+                        response = await sendGeminiMessage(
+                            resultText,
+                            nextContext,
+                            request.model,
+                            [],
+                            signal,
+                            onUpdate,
+                            request.gemId // Pass Gem ID
+                        );
+
+                    } catch (e) {
+                        console.error("MCP Execution Error", e);
+                        if (onUpdate) onUpdate({
+                            action: "GEMINI_STREAM",
+                            text: response.text + `\n\n> ❌ Tool Error: ${e.message}`
+                        });
+                        // Continue with original response if tool fails? Or let the error stand?
+                        // Let's just append the error to the response text so the user sees it.
+                        response.text += `\n\n> ❌ Tool execution failed: ${e.message}`;
+                    }
+                }
+                // ------------------------------------------
+
+                // Success!
+                await this.auth.updateContext(response.newContext, request.model);
+
+                return {
+                    action: "GEMINI_REPLY",
+                    text: response.text,
+                    thoughts: response.thoughts,
+                    images: response.images,
+                    title: response.title, // Include auto-generated title
+                    status: "success",
+                    context: response.newContext
+                };
+
+            } catch (err) {
+                throw err; // Throw to outer catch
             }
 
         } catch (error) {
@@ -158,17 +135,15 @@ export class GeminiSessionManager {
             const isZh = chrome.i18n.getUILanguage().startsWith('zh');
 
             if (errorMessage.includes("未登录") || errorMessage.includes("Not logged in") || errorMessage.includes("Session expired")) {
-                // If we exhausted retries and still failed
                 this.auth.forceContextRefresh();
                 await chrome.storage.local.remove(['geminiContext']);
 
-                const currentIndex = this.auth.getCurrentIndex();
-                const loginUrl = `https://gemini.google.com/u/${currentIndex}/`;
+                const loginUrl = 'https://gemini.google.com/';
 
                 if (isZh) {
-                    errorMessage = `🔑 账号 (Index: ${currentIndex}) 未登录或会话已过期。<br><a href="#" class="gemini-link" data-url="${loginUrl}">👉 点击前往 Gemini 登录</a>`;
+                    errorMessage = `🔑 未登录或会话已过期。<br><a href="#" class="gemini-link" data-url="${loginUrl}">👉 点击前往 Gemini 登录</a>`;
                 } else {
-                    errorMessage = `🔑 Account (Index: ${currentIndex}) not logged in.<br><a href="#" class="gemini-link" data-url="${loginUrl}">👉 Click to open Gemini login</a>`;
+                    errorMessage = `🔑 Not logged in or session expired.<br><a href="#" class="gemini-link" data-url="${loginUrl}">👉 Click to open Gemini login</a>`;
                 }
             } else if (errorMessage.includes("Rate limited") || errorMessage.includes("请求过于频繁")) {
                 if (isZh) {

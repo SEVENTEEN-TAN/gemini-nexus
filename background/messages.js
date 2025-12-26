@@ -104,7 +104,7 @@ export function setupMessageListener(sessionManager, imageHandler, controlManage
         // --- SESSION MANAGEMENT ---
         if (request.action === 'DELETE_SESSION_FROM_SERVER') {
             const conversationId = request.conversationId;
-            const userIndex = '0'; // TODO: Support multi-account
+            const userIndex = '0'; // Single account mode
             
             console.log(`[Background] DELETE_SESSION_FROM_SERVER: ${conversationId}`);
             

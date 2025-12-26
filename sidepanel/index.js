@@ -29,7 +29,6 @@ chrome.storage.local.get([
     'geminiTextSelectionEnabled',
     'geminiImageToolsEnabled',
     'geminiImageToolsEnabled',
-    'geminiAccountIndices', // New preference
     'gemini_gem_id'
 ], (result) => {
     preFetchedData = result;
@@ -84,12 +83,6 @@ function trySendInitData() {
         win.postMessage({
             action: 'RESTORE_IMAGE_TOOLS',
             payload: preFetchedData.geminiImageToolsEnabled !== false
-        }, '*');
-
-        // Push Account Indices
-        win.postMessage({
-            action: 'RESTORE_ACCOUNT_INDICES',
-            payload: preFetchedData.geminiAccountIndices || "0"
         }, '*');
 
         // Handle Pending Session Switch
@@ -310,18 +303,6 @@ window.addEventListener('message', (event) => {
         });
     }
 
-    if (action === 'GET_ACCOUNT_INDICES') {
-        chrome.storage.local.get(['geminiAccountIndices'], (res) => {
-            const indices = res.geminiAccountIndices || "0";
-            if (iframe.contentWindow) {
-                iframe.contentWindow.postMessage({
-                    action: 'RESTORE_ACCOUNT_INDICES',
-                    payload: indices
-                }, '*');
-            }
-        });
-    }
-
     // --- Sync Storage Updates back to Local Cache (For Speed next time) ---
 
     if (action === 'SAVE_SESSIONS') {
@@ -355,10 +336,6 @@ window.addEventListener('message', (event) => {
     if (action === 'SAVE_SIDEBAR_BEHAVIOR') {
         chrome.storage.local.set({ geminiSidebarBehavior: payload });
         if (preFetchedData) preFetchedData.geminiSidebarBehavior = payload;
-    }
-    if (action === 'SAVE_ACCOUNT_INDICES') {
-        chrome.storage.local.set({ geminiAccountIndices: payload });
-        if (preFetchedData) preFetchedData.geminiAccountIndices = payload;
     }
     if (action === 'SAVE_GEM_ID') {
         chrome.storage.local.set({ gemini_gem_id: payload });
