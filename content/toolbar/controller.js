@@ -179,7 +179,7 @@
         }
         
         populateGemsToModelSelector(gems) {
-            const modelSelect = this.ui.elements?.modelSelect;
+            const modelSelect = this.ui.elements?.askModelSelect;
             if (!modelSelect) {
                 console.warn('[ToolbarController] Model select not found');
                 return;
