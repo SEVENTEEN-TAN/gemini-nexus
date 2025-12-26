@@ -67,11 +67,21 @@ export class PromptHandler {
                         currentFiles = toolResult.files || []; // Send new files if any, or clear previous files
                         
                         // Format observation for the model
-                        currentPromptText = `[Tool Output from ${toolResult.toolName}]:\n\`\`\`\n${toolResult.output}\n\`\`\`\n\n(Proceed with the next step or confirm completion)`;
+                        currentPromptText = `[Tool Output from ${toolResult.toolName}]:
+\`\`\`
+${toolResult.output}
+\`\`\`
+
+(Proceed with the next step or confirm completion)`;
                         
                         // Save "User" message (Tool Output) to history to keep context in sync
                         if (request.sessionId) {
-                            const userMsg = `🛠️ **Tool Output:**\n\`\`\`\n${toolResult.output}\n\`\`\`\n\n*(Proceeding to step ${loopCount + 1})*`;
+                            const userMsg = `🛠️ **Tool Output:**
+\`\`\`
+${toolResult.output}
+\`\`\`
+
+*(Proceeding to step ${loopCount + 1})*`;
                             
                             let historyImages = toolResult.files ? toolResult.files.map(f => f.base64) : null;
                             await appendUserMessage(request.sessionId, userMsg, historyImages);
@@ -94,6 +104,11 @@ export class PromptHandler {
                     status: "error"
                 }).catch(() => {});
             } finally {
+                // Clean up browser control overlay when task completes
+                if (request.enableBrowserControl && this.builder.controlManager) {
+                    await this.builder.controlManager.disableControlMode();
+                    console.log('[PromptHandler] Browser control disabled after task completion');
+                }
                 sendResponse({ status: "completed" });
             }
         })();

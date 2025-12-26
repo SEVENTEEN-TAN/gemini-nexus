@@ -164,6 +164,14 @@
                         { action: 'FETCH_GEMS_LIST', userIndex: '0', forceRefresh: false },
                         (response) => {
                             clearTimeout(timeout);
+                            
+                            // Check for Chrome runtime errors
+                            if (chrome.runtime.lastError) {
+                                console.warn('[ToolbarController] Runtime error:', chrome.runtime.lastError.message);
+                                reject(new Error(chrome.runtime.lastError.message));
+                                return;
+                            }
+                            
                             resolve(response);
                         }
                     );
@@ -172,9 +180,14 @@
                 if (response && response.gems && response.gems.length > 0) {
                     console.log(`[ToolbarController] Loaded ${response.gems.length} Gems`);
                     this.populateGemsToModelSelector(response.gems);
+                } else if (response && response.error) {
+                    console.warn('[ToolbarController] Backend error:', response.error);
+                } else {
+                    console.log('[ToolbarController] No Gems available');
                 }
             } catch (error) {
-                console.warn('[ToolbarController] Failed to load Gems:', error);
+                console.warn('[ToolbarController] Failed to load Gems:', error.message);
+                // Silently fail - Gems are optional feature
             }
         }
         

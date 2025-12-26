@@ -13,11 +13,21 @@ export class PromptBuilder {
         if (request.includePageContext) {
             const pageContent = await getActiveTabContent();
             if (pageContent) {
-                systemPreamble += `Webpage Context:\n\`\`\`text\n${pageContent}\n\`\`\`\n\n`;
+                systemPreamble += `Webpage Context:
+\`\`\`text
+${pageContent}
+\`\`\`
+
+`;
             }
         }
 
         if (request.enableBrowserControl) {
+            // Enable control overlay when browser control is requested
+            if (this.controlManager) {
+                await this.controlManager.enableControlMode();
+            }
+            
             systemPreamble += BROWSER_CONTROL_PREAMBLE;
 
             // Inject Snapshot (Structured Vision)
@@ -25,7 +35,12 @@ export class PromptBuilder {
                 try {
                     const snapshot = await this.controlManager.getSnapshot();
                     if (snapshot) {
-                        systemPreamble += `\n[Current Page Accessibility Tree (Structured Vision)]:\n\`\`\`text\n${snapshot}\n\`\`\`\n`;
+                        systemPreamble += `
+[Current Page Accessibility Tree (Structured Vision)]:
+\`\`\`text
+${snapshot}
+\`\`\`
+`;
                     } else {
                         systemPreamble += `\n[System: Could not capture initial snapshot. You may need to navigate to a page or use 'take_snapshot' manually.]\n`;
                     }

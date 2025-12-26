@@ -20,19 +20,18 @@ To use a tool, output a **single** JSON block at the end of your response:
 
 **Available Tools:**
 
+### Core Navigation & Interaction (1-12)
+
 1. **take_snapshot**: Returns the Accessibility Tree with UIDs.
    - args: {}
-   - Use this if the page changes and you need fresh UIDs.
 
 2. **click**: Click an element using its UID.
    - args: { "uid": "string", "dblClick": boolean }
-   - Optional: set "dblClick": true for double-clicking.
 
-3. **fill**: Type text into an input field or select an option.
+3. **fill**: Type text into an input field.
    - args: { "uid": "string", "value": "string" }
-   - Works for <input>, <textarea>, <select>, and [contenteditable] elements.
 
-4. **fill_form**: Batch fill multiple fields at once.
+4. **fill_form**: Batch fill multiple fields.
    - args: { "elements": [{ "uid": "string", "value": "string" }, ...] }
 
 5. **hover**: Hover over an element.
@@ -40,69 +39,161 @@ To use a tool, output a **single** JSON block at the end of your response:
 
 6. **press_key**: Press a keyboard key.
    - args: { "key": "string" }
-   - Keys: Enter, Tab, Escape, Backspace, ArrowDown, ArrowUp, etc.
 
 7. **navigate_page**: Go to a URL or navigate history.
    - args: { "url": "https://...", "type": "url" }
-   - args: { "type": "back" } | { "type": "reload" }
 
 8. **wait_for**: Wait for specific text to appear.
    - args: { "text": "string", "timeout": 5000 }
 
 9. **evaluate_script**: Execute JavaScript (DOM Access).
    - args: { "script": "return document.title;" }
-   - Use this to extract data from the DOM that isn't in the snapshot.
 
-10. **run_javascript**: Execute generic JavaScript (Calculation/Logic).
-    - args: { "script": "const a = 5; const b = 10; return a + b;" }
-    - Use this for math, data processing, or complex logic.
-    - Script is wrapped in an async function, 'await' is available.
-    - ENSURE you 'return' the final value.
+10. **run_javascript**: Execute generic JavaScript.
+    - args: { "script": "const a = 5; return a + 10;" }
 
 11. **take_screenshot**: Capture the visible viewport.
-   - args: {}
+    - args: {}
 
 12. **attach_file**: Upload files to a file input.
     - args: { "uid": "string", "paths": ["path/to/file"] }
 
+### Page & Tab Management (13-17)
+
 13. **new_page**: Create a new page (tab).
     - args: { "url": "https://..." }
 
-14. **close_page**: Close a page by its index in the page list.
+14. **close_page**: Close a page by index.
     - args: { "index": number }
-    - Use \`list_pages\` first to see indices.
 
-15. **list_pages**: List all open pages with their indices and titles.
+15. **list_pages**: List all open pages.
     - args: {}
 
 16. **select_page**: Switch focus to a page by index.
     - args: { "index": number }
 
-17. **resize_page**: Resize the viewport for responsive testing.
+17. **resize_page**: Resize the viewport.
     - args: { "width": number, "height": number }
 
-18. **drag_element**: Drag an element to another element.
+### Advanced Interactions (18-20)
+
+18. **drag_element**: Drag an element to another.
     - args: { "from_uid": "string", "to_uid": "string" }
 
-19. **handle_dialog**: Handle open JavaScript dialogs (alert, confirm, prompt).
+19. **handle_dialog**: Handle JavaScript dialogs.
     - args: { "accept": boolean, "promptText": "string" }
-    - Default "accept": true. Use this if the browser is stuck on a dialog.
 
-20. **get_logs**: Retrieve console logs and browser issues (Audits).
+20. **get_logs**: Retrieve console logs.
     - args: {}
-    - Use this to debug why an action failed or to see if a dialog is blocking.
 
-21. **performance_start_trace**: Start recording performance profile.
+### Performance & Network (21-24)
+
+21. **performance_start_trace**: Start recording performance.
     - args: { "reload": boolean }
 
-22. **performance_stop_trace**: Stop recording and get summary metrics (LCP, FCP, CLS).
+22. **performance_stop_trace**: Stop and get metrics (LCP, FCP, CLS).
     - args: {}
 
-23. **list_network_requests**: List network activity with filtering.
+23. **list_network_requests**: List network activity.
     - args: { "resourceTypes": ["Fetch", "XHR"], "limit": 20 }
-    - Types: Document, Stylesheet, Image, Media, Font, Script, XHR, Fetch, etc.
 
-24. **get_network_request**: Get full headers and body of a request.
+24. **get_network_request**: Get full request details.
     - args: { "requestId": "string" }
-    - Use this to inspect API responses or debug errors found in list_network_requests.
-\n`;
+
+## Enhanced Selection Tools (NEW) - (25-29)
+
+More flexible element finding beyond UID-based selection
+
+25. **find_by_css**: Find elements using CSS selectors.
+    - args: { "selector": "string" }
+    - Returns: Array of matching elements with text, role, visibility
+
+26. **find_by_xpath**: Find elements using XPath expressions.
+    - args: { "xpath": "string" }
+    - Returns: Array of matching elements
+
+27. **find_by_text**: Find elements by text content (fuzzy or exact).
+    - args: { "text": "string", "exact": boolean, "contains": boolean }
+    - Returns: Array of interactive elements
+
+28. **find_by_accessibility**: Find elements by ARIA properties.
+    - args: { "name": "string", "role": "string", "label": "string" }
+    - Returns: Array of accessible elements
+
+29. **validate_selector**: Validate CSS or XPath selector syntax.
+    - args: { "selector": "string", "type": "css" | "xpath" }
+    - Returns: boolean
+
+## Web Accessibility Audit (NEW) - 30
+
+30. **audit_accessibility** (alias: **a11y_audit**): Run comprehensive WCAG 2.1 Level AA audit.
+    - args: {}
+    - Returns: { score: 0-100, issues: Array, summary: string, categories: object }
+    - Checks:
+      - Color contrast ratios
+      - Heading hierarchy
+      - Form labels
+      - Image alt text
+      - ARIA attributes
+      - Keyboard navigation
+      - Focus visibility
+      - Color dependence
+
+## Interactive Breakpoint Control (DEPRECATED) - (31-33)
+
+**Note**: These tools are deprecated. Use wait_for_user instead.
+
+31. **breakpoint_pause**: Pause automation with UI overlay.
+32. **breakpoint_resume**: Resume from paused breakpoint.
+33. **breakpoint_end**: End automation from breakpoint.
+
+## User Intervention Control (NEW) - (34)
+
+When AI encounters tasks it cannot handle (CAPTCHA, complex interactions, verification), it can request user help.
+
+34. **wait_for_user** / **request_user_help**: Request user intervention.
+    - args: { "message": "string" }
+    - Effect:
+      - Shows full-screen overlay with breathing glow (blocks page interaction)
+      - Automatically pauses automation
+      - Status shows your custom message
+      - Bottom panel with "⏸ Pause" and "▶ Continue" buttons
+      - Page becomes INTERACTIVE when paused
+    - User Actions:
+      - Click "Pause": AI suspends, user can manually interact with page
+      - Complete task (e.g., solve CAPTCHA, fill form)
+      - Click "Continue": AI resumes control
+    - Returns: { status: 'continued' } when user clicks Continue
+    - Use Cases:
+      - CAPTCHAs
+      - Complex verification flows
+      - Manual data input required
+      - Two-factor authentication
+
+## Workflow Examples
+
+### Example 1: CAPTCHA Handling
+\`\`\`
+1. AI detects CAPTCHA element on page
+2. Call wait_for_user with message parameter
+3. Page shows full overlay with breathing blue glow
+4. User completes CAPTCHA and clicks Continue button
+5. AI receives continued status and proceeds
+\`\`\`
+
+### Example 2: Two-Factor Authentication
+\`\`\`
+1. AI fills username and password
+2. Detects 2FA code input field
+3. Call wait_for_user to request code entry
+4. User enters code and clicks Continue
+5. AI proceeds to click Submit button
+\`\`\`
+
+### During AI Control:
+- User can click "Pause" at ANY time to intervene
+- AI operations are suspended
+- User manually adjusts page
+- Click "Continue" to resume AI control
+
+\\n`;
