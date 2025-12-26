@@ -35,7 +35,10 @@ export class AppController {
         this.prompt = new PromptController(sessionManager, uiController, imageManager, this);
         this.mcp = new MCPController(this);
         this.gems = new GemsController();
-        
+    }
+    
+    // Initialize Gems after DOM is ready
+    initializeGems() {
         // Register model selects for Gems population
         const modelSelect = document.getElementById('model-select');
         if (modelSelect) {
@@ -44,6 +47,8 @@ export class AppController {
             this.gems.fetchGems(false).catch(err => {
                 console.error('[AppController] Failed to fetch Gems on init:', err);
             });
+        } else {
+            console.warn('[AppController] Model select not found, Gems initialization delayed');
         }
     }
 

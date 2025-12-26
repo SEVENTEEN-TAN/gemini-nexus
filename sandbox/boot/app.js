@@ -77,6 +77,9 @@ export function initAppMode() {
 
         // Initialize Controller
         const app = new AppController(sessionManager, ui, imageManager);
+        
+        // Initialize Gems after app is ready
+        app.initializeGems();
 
         // Connect Bridge to App Instances
         bridge.setUI(ui);
