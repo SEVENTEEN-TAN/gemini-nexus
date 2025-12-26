@@ -3,14 +3,17 @@
 <cite>
 **本文档引用的文件**
 - [gemini_api.js](file://services/gemini_api.js)
-- [session_manager.js](file://background/managers/session_manager.js)
+- [gems_controller.js](file://sandbox/controllers/gems_controller.js)
+- [gems.js](file://services/gems.js)
 - [controller.js](file://content/toolbar/controller.js)
-- [actions.js](file://content/toolbar/actions.js)
-- [messaging.js](file://lib/messaging.js)
-- [settings.js](file://sandbox/ui/settings.js)
-- [settings_view.js](file://sandbox/ui/settings/view.js)
-- [messages.js](file://background/messages.js)
 </cite>
+
+## 更新摘要
+**已做更改**
+- 更新了gemId参数在sendGeminiMessage函数中的实现细节
+- 修正了gemId在请求头和数据结构中的双重注入机制描述
+- 增加了gemId从URL解析和存储的详细说明
+- 更新了相关架构图和序列图以反映最新代码逻辑
 
 ## 目录
 1. [简介](#简介)
