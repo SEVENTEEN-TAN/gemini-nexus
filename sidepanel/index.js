@@ -197,6 +197,19 @@ window.addEventListener('message', (event) => {
             userIndex: userIndex,
             forceRefresh: forceRefresh
         }, (response) => {
+            // Check for Chrome runtime errors
+            if (chrome.runtime.lastError) {
+                console.error('[Sidepanel] FETCH_GEMS_LIST runtime error:', chrome.runtime.lastError.message);
+                if (iframe.contentWindow) {
+                    iframe.contentWindow.postMessage({
+                        action: 'GEMS_LIST_RESPONSE',
+                        messageId: messageId,
+                        response: { gems: [], error: chrome.runtime.lastError.message }
+                    }, '*');
+                }
+                return;
+            }
+            
             console.log('[Sidepanel] FETCH_GEMS_LIST response from background:', response);
             if (iframe.contentWindow) {
                 iframe.contentWindow.postMessage({
@@ -222,6 +235,19 @@ window.addEventListener('message', (event) => {
             userIndex: userIndex,
             forceRefresh: forceRefresh
         }, (response) => {
+            // Check for Chrome runtime errors
+            if (chrome.runtime.lastError) {
+                console.error('[Sidepanel] FETCH_MODELS_LIST runtime error:', chrome.runtime.lastError.message);
+                if (iframe.contentWindow) {
+                    iframe.contentWindow.postMessage({
+                        action: 'MODELS_LIST_RESPONSE',
+                        messageId: messageId,
+                        response: { models: [], error: chrome.runtime.lastError.message }
+                    }, '*');
+                }
+                return;
+            }
+            
             console.log('[Sidepanel] FETCH_MODELS_LIST response from background:', response);
             if (iframe.contentWindow) {
                 iframe.contentWindow.postMessage({

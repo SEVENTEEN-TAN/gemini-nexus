@@ -73,7 +73,11 @@ export class KeepAliveManager {
             }
         } catch (e) {
             this.consecutiveErrors++;
-            console.error("[Gemini Nexus] Keep-Alive: Network error", e);
+            // Only log if it's a critical error, not just network unavailable
+            if (this.consecutiveErrors === 1) {
+                console.warn("[Gemini Nexus] Keep-Alive: Network error on first attempt, will retry silently");
+            }
+            // Silently fail - this is a background task
         } finally {
             this.isRotating = false;
         }

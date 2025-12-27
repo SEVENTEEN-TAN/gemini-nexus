@@ -15,26 +15,50 @@ export async function fetchRequestParams(userIndex = '0') {
 
     console.log(`Fetching Gemini credentials for index ${userIndex} via ${url}...`);
     
-    const resp = await fetch(url, {
-        method: 'GET'
-    });
-    const html = await resp.text();
+    try {
+        const resp = await fetch(url, {
+            method: 'GET',
+            credentials: 'include',  // Include cookies
+            headers: {
+                'User-Agent': navigator.userAgent
+            }
+        });
+        
+        if (!resp.ok) {
+            console.warn(`[Auth] HTTP ${resp.status} ${resp.statusText} for ${url}`);
+            throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+        }
+        
+        const html = await resp.text();
 
-    const atValue = extractFromHTML('SNlM0e', html);
-    const blValue = extractFromHTML('cfb2h', html);
-    
-    // Try to find the user index (authuser) to support multiple accounts
-    // Usually found in the URL or implied, but scraping data-index is safer if available
-    let authUserIndex = userIndex; // Default to requested index
-    
-    const authMatch = html.match(/data-index="(\d+)"/);
-    if (authMatch) {
-        authUserIndex = authMatch[1];
+        const atValue = extractFromHTML('SNlM0e', html);
+        const blValue = extractFromHTML('cfb2h', html);
+        
+        // Try to find the user index (authuser) to support multiple accounts
+        // Usually found in the URL or implied, but scraping data-index is safer if available
+        let authUserIndex = userIndex; // Default to requested index
+        
+        const authMatch = html.match(/data-index="(\d+)"/);
+        if (authMatch) {
+            authUserIndex = authMatch[1];
+        }
+
+        if (!atValue) {
+            console.error('[Auth] SNlM0e token not found in HTML - user may not be logged in');
+            throw new Error(`Not logged in for account ${userIndex}. Please log in to gemini.google.com.`);
+        }
+
+        console.log('[Auth] Successfully fetched credentials');
+        return { atValue, blValue, authUserIndex };
+        
+    } catch (error) {
+        console.error(`[Auth] Failed to fetch credentials:`, error);
+        
+        // Provide helpful error messages
+        if (error.message.includes('Failed to fetch')) {
+            throw new Error(`Network error: Cannot reach ${url}. Check your internet connection or try logging in to gemini.google.com manually.`);
+        }
+        
+        throw error;
     }
-
-    if (!atValue) {
-        throw new Error(`Not logged in for account ${userIndex}. Please log in to gemini.google.com.`);
-    }
-
-    return { atValue, blValue, authUserIndex };
 }

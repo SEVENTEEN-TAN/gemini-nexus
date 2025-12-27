@@ -36,12 +36,15 @@ export class GemsController {
                 }, 15000);
 
                 const messageId = `gems_${Date.now()}`;
+                console.log('[GemsController] Sending request with messageId:', messageId);
 
                 const handleResponse = (event) => {
+                    console.log('[GemsController] Received message:', event.data.action, event.data.messageId);
                     if (event.data.action === 'GEMS_LIST_RESPONSE' && 
                         event.data.messageId === messageId) {
                         clearTimeout(timeout);
                         window.removeEventListener('message', handleResponse);
+                        console.log('[GemsController] Response matched, resolving:', event.data.response);
                         resolve(event.data.response);
                     }
                 };
@@ -49,12 +52,21 @@ export class GemsController {
                 window.addEventListener('message', handleResponse);
 
                 // Send to parent (sidepanel)
+                if (!window.parent) {
+                    clearTimeout(timeout);
+                    window.removeEventListener('message', handleResponse);
+                    reject(new Error('No parent window found'));
+                    return;
+                }
+                
+                console.log('[GemsController] Posting message to parent...');
                 window.parent.postMessage({
                     action: 'FETCH_GEMS_LIST',
                     messageId: messageId,
-                    userIndex: '0', // You can make this configurable
+                    userIndex: '0',
                     forceRefresh: forceRefresh
                 }, '*');
+                console.log('[GemsController] Message posted successfully');
             });
 
             if (response && response.gems && response.gems.length > 0) {
@@ -63,14 +75,16 @@ export class GemsController {
                 this.populateModelSelects();
                 return this.gems;
             } else if (response && response.error) {
-                console.error('[GemsController] API error:', response.error);
+                console.warn('[GemsController] API error:', response.error);
+                // Silently fail - Gems are optional
                 return [];
             } else {
                 console.warn('[GemsController] No Gems found');
                 return [];
             }
         } catch (error) {
-            console.error('[GemsController] Error fetching Gems:', error);
+            console.warn('[GemsController] Error fetching Gems:', error.message);
+            // Silently fail - Gems are optional
             return [];
         } finally {
             this.isLoading = false;

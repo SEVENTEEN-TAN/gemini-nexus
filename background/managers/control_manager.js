@@ -168,8 +168,10 @@ export class BrowserControlManager {
         await this.controlOverlay.updateStatus(message);
         
         // Wait for continue button
+        // Note: _handleContinue will call controlOverlay.continue() before invoking this callback
         return new Promise((resolve) => {
             this._continueCallback = () => {
+                console.log('[ControlManager] User intervention completed, resuming AI control');
                 resolve({ status: 'continued' });
             };
         });
@@ -273,6 +275,16 @@ export class BrowserControlManager {
             }
 
             console.log(`[MCP] Executing tool: ${name}`, args);
+            
+            // Check for blocking elements before execution
+            const blockingDetected = await this._detectBlockingElements();
+            if (blockingDetected) {
+                console.warn('[ControlManager] Blocking element detected:', blockingDetected.type);
+                const result = await this.waitForUserIntervention(
+                    blockingDetected.message || `检测到${blockingDetected.type}，请手动处理后点击继续`
+                );
+                // After user handles it, continue with the original tool
+            }
 
             let result;
             switch (name) {
@@ -419,7 +431,143 @@ export class BrowserControlManager {
 
         } catch (e) {
             console.error(`[MCP] Tool execution error:`, e);
+            
+            // Auto-retry logic for common failures
+            if (this._shouldRequestUserHelp(e)) {
+                console.log('[ControlManager] Auto-triggering user intervention due to error');
+                try {
+                    await this.waitForUserIntervention(
+                        `操作失败: ${e.message}\n\n请手动处理问题后点击继续，AI将重试该操作`
+                    );
+                    // Retry the tool after user intervention
+                    console.log('[ControlManager] Retrying tool after user intervention:', toolCall.name);
+                    return await this.execute(toolCall);
+                } catch (retryError) {
+                    return `Error executing ${toolCall.name} after retry: ${retryError.message}`;
+                }
+            }
+            
             return `Error executing ${toolCall.name}: ${e.message}`;
         }
+    }
+
+    /**
+     * Detect blocking elements that require user intervention
+     * Returns { type, message } if blocking element found, null otherwise
+     */
+    async _detectBlockingElements() {
+        try {
+            const result = await this.connection.sendCommand("Runtime.evaluate", {
+                expression: `
+                    (function() {
+                        // Check for CAPTCHA
+                        const captchaSelectors = [
+                            'iframe[src*="recaptcha"]',
+                            'iframe[src*="hcaptcha"]',
+                            '[class*="captcha"]',
+                            '[id*="captcha"]',
+                            '.g-recaptcha',
+                            '.h-captcha'
+                        ];
+                        
+                        for (const selector of captchaSelectors) {
+                            if (document.querySelector(selector)) {
+                                return { type: '验证码', message: '检测到验证码，请完成验证后点击继续' };
+                            }
+                        }
+                        
+                        // Check for authentication dialogs
+                        const authSelectors = [
+                            '[type="password"]:not([style*="display: none"])',
+                            'input[name*="password"]:not([style*="display: none"])',
+                            'input[autocomplete="current-password"]'
+                        ];
+                        
+                        for (const selector of authSelectors) {
+                            const elem = document.querySelector(selector);
+                            if (elem && elem.offsetParent !== null) {
+                                return { type: '登录验证', message: '检测到登录页面，请完成登录后点击继续' };
+                            }
+                        }
+                        
+                        // Check for modal dialogs that might block interaction
+                        const modalSelectors = [
+                            '[role="dialog"][aria-modal="true"]',
+                            '.modal[style*="display: block"]',
+                            '[class*="popup"][style*="display: block"]'
+                        ];
+                        
+                        for (const selector of modalSelectors) {
+                            const modal = document.querySelector(selector);
+                            if (modal && modal.offsetParent !== null) {
+                                // Check if modal has required action buttons
+                                const hasRequiredAction = modal.querySelector('button[required], input[required]');
+                                if (hasRequiredAction) {
+                                    return { type: '必填弹窗', message: '检测到需要处理的弹窗，请完成操作后点击继续' };
+                                }
+                            }
+                        }
+                        
+                        // Check for 2FA/OTP inputs
+                        const otpSelectors = [
+                            'input[type="text"][maxlength="6"]',
+                            'input[autocomplete="one-time-code"]',
+                            'input[name*="otp"]',
+                            'input[name*="code"]'
+                        ];
+                        
+                        for (const selector of otpSelectors) {
+                            const elem = document.querySelector(selector);
+                            if (elem && elem.offsetParent !== null) {
+                                return { type: '双因素认证', message: '检测到验证码输入框，请输入验证码后点击继续' };
+                            }
+                        }
+                        
+                        return null;
+                    })()
+                `,
+                returnByValue: true
+            });
+            
+            return result.result.value;
+        } catch (e) {
+            console.warn('[ControlManager] Failed to detect blocking elements:', e.message);
+            return null;
+        }
+    }
+
+    /**
+     * Determine if an error should trigger user intervention
+     */
+    _shouldRequestUserHelp(error) {
+        const errorMessage = error.message.toLowerCase();
+        
+        // Network/timeout errors
+        if (errorMessage.includes('timeout') || 
+            errorMessage.includes('network') ||
+            errorMessage.includes('failed to fetch')) {
+            return true;
+        }
+        
+        // Element not found/not interactable
+        if (errorMessage.includes('not found') ||
+            errorMessage.includes('not interactable') ||
+            errorMessage.includes('not visible')) {
+            return true;
+        }
+        
+        // Navigation errors
+        if (errorMessage.includes('navigation') ||
+            errorMessage.includes('load')) {
+            return true;
+        }
+        
+        // Click intercepted
+        if (errorMessage.includes('intercepted') ||
+            errorMessage.includes('obscured')) {
+            return true;
+        }
+        
+        return false;
     }
 }

@@ -36,12 +36,15 @@ export class ModelsController {
                 }, 15000);
 
                 const messageId = `models_${Date.now()}`;
+                console.log('[ModelsController] Sending request with messageId:', messageId);
 
                 const handleResponse = (event) => {
+                    console.log('[ModelsController] Received message:', event.data.action, event.data.messageId);
                     if (event.data.action === 'MODELS_LIST_RESPONSE' && 
                         event.data.messageId === messageId) {
                         clearTimeout(timeout);
                         window.removeEventListener('message', handleResponse);
+                        console.log('[ModelsController] Response matched, resolving:', event.data.response);
                         resolve(event.data.response);
                     }
                 };
@@ -49,12 +52,21 @@ export class ModelsController {
                 window.addEventListener('message', handleResponse);
 
                 // Send to parent (sidepanel)
+                if (!window.parent) {
+                    clearTimeout(timeout);
+                    window.removeEventListener('message', handleResponse);
+                    reject(new Error('No parent window found'));
+                    return;
+                }
+                
+                console.log('[ModelsController] Posting message to parent...');
                 window.parent.postMessage({
                     action: 'FETCH_MODELS_LIST',
                     messageId: messageId,
                     userIndex: '0',
                     forceRefresh: forceRefresh
                 }, '*');
+                console.log('[ModelsController] Message posted successfully');
             });
 
             if (response && response.models && response.models.length > 0) {
@@ -64,13 +76,15 @@ export class ModelsController {
                 return this.models;
             } else if (response && response.error) {
                 console.error('[ModelsController] API error:', response.error);
+                // Silently fail - models are optional
                 return [];
             } else {
                 console.warn('[ModelsController] No models found, using defaults');
                 return [];
             }
         } catch (error) {
-            console.error('[ModelsController] Error fetching models:', error);
+            console.warn('[ModelsController] Error fetching models:', error.message);
+            // Silently fail - models are optional
             return [];
         } finally {
             this.isLoading = false;
