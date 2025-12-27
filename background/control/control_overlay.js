@@ -229,8 +229,14 @@ export class ControlOverlay {
                 `
             });
         } catch (e) {
-            console.error('[ControlOverlay] Failed to show overlay:', e);
-            this.isVisible = false;
+            // Silent fail if debugger session is closed (tab closed/refreshed)
+            if (e.message?.includes('No active debugger session')) {
+                console.log('[ControlOverlay] Debugger session closed, overlay not shown');
+                this.isVisible = false;
+            } else {
+                console.error('[ControlOverlay] Failed to show overlay:', e);
+                this.isVisible = false;
+            }
         }
     }
 
@@ -256,6 +262,10 @@ export class ControlOverlay {
                         state.pauseBtn.style.display = 'none';
                         state.continueBtn.style.display = 'flex';
 
+                        // Remove blur effect when paused
+                        state.overlay.style.backdropFilter = 'none';
+                        state.overlay.style.animation = 'none';  // Stop breathing animation
+
                         // Enable page interaction
                         document.body.classList.remove('gemini-control-active');
                         state.overlay.style.pointerEvents = 'none';
@@ -264,7 +274,12 @@ export class ControlOverlay {
                 `
             });
         } catch (e) {
-            console.error('[ControlOverlay] Failed to pause:', e);
+            // Silent fail if debugger session is closed
+            if (e.message?.includes('No active debugger session')) {
+                console.log('[ControlOverlay] Debugger session closed, cannot pause');
+            } else {
+                console.error('[ControlOverlay] Failed to pause:', e);
+            }
         }
     }
 
@@ -290,6 +305,10 @@ export class ControlOverlay {
                         state.continueBtn.style.display = 'none';
                         state.pauseBtn.style.display = 'flex';
 
+                        // Restore blur effect when continuing
+                        state.overlay.style.backdropFilter = 'blur(2px)';
+                        state.overlay.style.animation = 'breathe 3s ease-in-out infinite';  // Resume breathing animation
+
                         // Disable page interaction again
                         document.body.classList.add('gemini-control-active');
                         state.overlay.style.pointerEvents = 'auto';
@@ -297,7 +316,12 @@ export class ControlOverlay {
                 `
             });
         } catch (e) {
-            console.error('[ControlOverlay] Failed to continue:', e);
+            // Silent fail if debugger session is closed
+            if (e.message?.includes('No active debugger session')) {
+                console.log('[ControlOverlay] Debugger session closed, cannot continue');
+            } else {
+                console.error('[ControlOverlay] Failed to continue:', e);
+            }
         }
     }
 
@@ -319,7 +343,12 @@ export class ControlOverlay {
                 `
             });
         } catch (e) {
-            console.error('[ControlOverlay] Failed to update status:', e);
+            // Silent fail if debugger session is closed
+            if (e.message?.includes('No active debugger session')) {
+                // Expected when tab is closed/refreshed, no need to log
+            } else {
+                console.warn('[ControlOverlay] Failed to update status:', e.message);
+            }
         }
     }
 
@@ -348,7 +377,12 @@ export class ControlOverlay {
                 `
             });
         } catch (e) {
-            console.error('[ControlOverlay] Failed to hide overlay:', e);
+            // Silent fail if debugger session is closed
+            if (e.message?.includes('No active debugger session')) {
+                console.log('[ControlOverlay] Debugger session closed, overlay already gone');
+            } else {
+                console.warn('[ControlOverlay] Failed to hide overlay:', e.message);
+            }
         }
     }
 }

@@ -464,6 +464,12 @@ export class BrowserControlManager {
             return result;
 
         } catch (e) {
+            // Silent fail if debugger session closed (common when tab is closed/refreshed)
+            if (e.message?.includes('No active debugger session')) {
+                console.log('[ControlManager] Debugger session closed during tool execution');
+                return `Browser tab was closed or refreshed. Please try again.`;
+            }
+            
             console.error(`[MCP] Tool execution error:`, e);
             
             // Auto-retry logic for common failures
@@ -477,6 +483,9 @@ export class BrowserControlManager {
                     console.log('[ControlManager] Retrying tool after user intervention:', toolCall.name);
                     return await this.execute(toolCall);
                 } catch (retryError) {
+                    if (retryError.message?.includes('No active debugger session')) {
+                        return `Browser tab was closed during retry. Please try again.`;
+                    }
                     return `Error executing ${toolCall.name} after retry: ${retryError.message}`;
                 }
             }
@@ -575,6 +584,11 @@ export class BrowserControlManager {
      */
     _shouldRequestUserHelp(error) {
         const errorMessage = error.message.toLowerCase();
+        
+        // Skip debugger session errors - these are expected when tab is closed
+        if (errorMessage.includes('no active debugger session')) {
+            return false;
+        }
         
         // Network/timeout errors
         if (errorMessage.includes('timeout') || 
